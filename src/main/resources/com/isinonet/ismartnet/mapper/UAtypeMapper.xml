@@ -12,7 +12,7 @@
     id, p_type, is_mobile, os_type, browser_type
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
-    select 
+    select
     <include refid="Base_Column_List" />
     from tb_static_uatype
     where id = #{id,jdbcType=INTEGER}
@@ -27,9 +27,9 @@
     where id = #{id,jdbcType=INTEGER}
   </delete>
   <insert id="insert" parameterType="com.isinonet.ismartnet.beans.UAType">
-    insert into tb_static_uatype (id, p_type, is_mobile, 
+    insert into tb_static_uatype (id, p_type, is_mobile,
       os_type, browser_type)
-    values (#{id,jdbcType=INTEGER}, #{pType,jdbcType=VARCHAR}, #{isMobile,jdbcType=SMALLINT}, 
+    values (#{id,jdbcType=INTEGER}, #{pType,jdbcType=VARCHAR}, #{isMobile,jdbcType=SMALLINT},
       #{osType,jdbcType=VARCHAR}, #{browserType,jdbcType=VARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.UAType">

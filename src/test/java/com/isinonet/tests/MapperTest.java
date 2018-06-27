@@ -1,10 +1,14 @@
 package com.isinonet.tests;
 
 import com.isinonet.ismartnet.beans.UserBean;
+import com.isinonet.ismartnet.beans.Website;
 import com.isinonet.ismartnet.mapper.UserMapper;
+import com.isinonet.ismartnet.mapper.WebsiteMapper;
 import com.isinonet.ismartnet.utils.JDBCHelper;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Test;
+
+import java.util.List;
 
 /**
  * Created by Administrator on 2018-06-06.
@@ -25,5 +29,14 @@ public class MapperTest {
             e.printStackTrace();
             session.rollback();
         }
+    }
+
+    @Test
+    public void findAll() {
+
+        SqlSession session = JDBCHelper.getSession();
+        WebsiteMapper mapper = session.getMapper(WebsiteMapper.class);
+        List<Website> websites = mapper.findAll();
+        websites.forEach( x-> System.out.println(x));
     }
 }

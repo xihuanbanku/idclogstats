@@ -23,7 +23,7 @@ import scala.collection.mutable.ListBuffer
 object VideoLogStats {
 
   def main(args: Array[String]): Unit = {
-    val sparkSession = SparkSession.builder().appName("VideoLogStats").master("local[*]")
+    val sparkSession = SparkSession.builder().appName("VideoLogStats")
       .config("spark.sql.shuffle.partitions", "10").getOrCreate()
     sparkSession.sparkContext.setLogLevel("WARN")
 

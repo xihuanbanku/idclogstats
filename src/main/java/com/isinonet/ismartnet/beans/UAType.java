@@ -1,5 +1,8 @@
 package com.isinonet.ismartnet.beans;
 
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class UAType {
     private Integer id;
 
