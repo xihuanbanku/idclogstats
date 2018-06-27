@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.isinonet.ismartnet.mapper.IdcDailyMapper" >
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.IdcDaily" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="website_id" property="websiteId" jdbcType="INTEGER" />
+    <result column="stat_date" property="statDate" jdbcType="DATE" />
+    <result column="is_mobile" property="isMobile" jdbcType="SMALLINT" />
+    <result column="come_from" property="comeFrom" jdbcType="SMALLINT" />
+    <result column="province_id" property="provinceId" jdbcType="SMALLINT" />
+    <result column="is_new_comer" property="isNewComer" jdbcType="SMALLINT" />
+    <result column="isp" property="isp" jdbcType="VARCHAR" />
+    <result column="pv" property="pv" jdbcType="INTEGER" />
+    <result column="uv" property="uv" jdbcType="INTEGER" />
+    <result column="vn" property="vn" jdbcType="INTEGER" />
+    <result column="vt" property="vt" jdbcType="INTEGER" />
+    <result column="spn" property="spn" jdbcType="INTEGER" />
+    <result column="mod_time" property="modTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+  <sql id="Example_Where_Clause" >
+    <where >
+      <foreach collection="oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause" >
+    <where >
+      <foreach collection="example.oredCriteria" item="criteria" separator="or" >
+        <if test="criteria.valid" >
+          <trim prefix="(" suffix=")" prefixOverrides="and" >
+            <foreach collection="criteria.criteria" item="criterion" >
+              <choose >
+                <when test="criterion.noValue" >
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue" >
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue" >
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue" >
+                  and ${criterion.condition}
+                  <foreach collection="criterion.value" item="listItem" open="(" close=")" separator="," >
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List" >
+    id, website_id, stat_date, is_mobile, come_from, province_id, is_new_comer, isp, 
+    pv, uv, vn, vt, spn, mod_time
+  </sql>
+  <select id="selectByExample" resultMap="BaseResultMap" parameterType="com.isinonet.ismartnet.beans.IdcDailyExample" >
+    select
+    <if test="distinct" >
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from tb_idc_daily
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null" >
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from tb_idc_daily
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from tb_idc_daily
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.isinonet.ismartnet.beans.IdcDailyExample" >
+    delete from tb_idc_daily
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.IdcDaily" >
+    insert into tb_idc_daily (website_id, stat_date,
+      is_mobile, come_from, province_id, 
+      is_new_comer, isp, pv, 
+      uv, vn, vt, spn, 
+      mod_time)
+    values (#{websiteId,jdbcType=INTEGER}, #{statDate,jdbcType=DATE},
+      #{isMobile,jdbcType=SMALLINT}, #{comeFrom,jdbcType=SMALLINT}, #{provinceId,jdbcType=SMALLINT}, 
+      #{isNewComer,jdbcType=SMALLINT}, #{isp,jdbcType=VARCHAR}, #{pv,jdbcType=INTEGER}, 
+      #{uv,jdbcType=INTEGER}, #{vn,jdbcType=INTEGER}, #{vt,jdbcType=INTEGER}, #{spn,jdbcType=INTEGER}, 
+      #{modTime,jdbcType=TIMESTAMP})
+  </insert>
+  <insert id="insertBatch" parameterType="java.util.List" >
+    insert into tb_idc_daily (website_id, stat_date,
+      is_mobile, come_from, province_id,
+      is_new_comer, isp, pv,
+      uv, vn, vt, spn,
+      mod_time)
+    values
+    <foreach collection="list" item="item" index="index" separator=",">
+      (#{item.websiteId,jdbcType=INTEGER}, #{item.statDate,jdbcType=DATE},
+      #{item.isMobile,jdbcType=SMALLINT}, #{item.comeFrom,jdbcType=SMALLINT}, #{item.provinceId,jdbcType=SMALLINT},
+      #{item.isNewComer,jdbcType=SMALLINT}, #{item.isp,jdbcType=VARCHAR}, #{item.pv,jdbcType=INTEGER},
+      #{item.uv,jdbcType=INTEGER}, #{item.vn,jdbcType=INTEGER}, #{item.vt,jdbcType=INTEGER}, #{item.spn,jdbcType=INTEGER},
+      #{item.modTime,jdbcType=TIMESTAMP})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.IdcDaily" >
+    insert into tb_idc_daily
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="websiteId != null" >
+        website_id,
+      </if>
+      <if test="statDate != null" >
+        stat_date,
+      </if>
+      <if test="isMobile != null" >
+        is_mobile,
+      </if>
+      <if test="comeFrom != null" >
+        come_from,
+      </if>
+      <if test="provinceId != null" >
+        province_id,
+      </if>
+      <if test="isNewComer != null" >
+        is_new_comer,
+      </if>
+      <if test="isp != null" >
+        isp,
+      </if>
+      <if test="pv != null" >
+        pv,
+      </if>
+      <if test="uv != null" >
+        uv,
+      </if>
+      <if test="vn != null" >
+        vn,
+      </if>
+      <if test="vt != null" >
+        vt,
+      </if>
+      <if test="spn != null" >
+        spn,
+      </if>
+      <if test="modTime != null" >
+        mod_time,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="websiteId != null" >
+        #{websiteId,jdbcType=INTEGER},
+      </if>
+      <if test="statDate != null" >
+        #{statDate,jdbcType=DATE},
+      </if>
+      <if test="isMobile != null" >
+        #{isMobile,jdbcType=SMALLINT},
+      </if>
+      <if test="comeFrom != null" >
+        #{comeFrom,jdbcType=SMALLINT},
+      </if>
+      <if test="provinceId != null" >
+        #{provinceId,jdbcType=SMALLINT},
+      </if>
+      <if test="isNewComer != null" >
+        #{isNewComer,jdbcType=SMALLINT},
+      </if>
+      <if test="isp != null" >
+        #{isp,jdbcType=VARCHAR},
+      </if>
+      <if test="pv != null" >
+        #{pv,jdbcType=INTEGER},
+      </if>
+      <if test="uv != null" >
+        #{uv,jdbcType=INTEGER},
+      </if>
+      <if test="vn != null" >
+        #{vn,jdbcType=INTEGER},
+      </if>
+      <if test="vt != null" >
+        #{vt,jdbcType=INTEGER},
+      </if>
+      <if test="spn != null" >
+        #{spn,jdbcType=INTEGER},
+      </if>
+      <if test="modTime != null" >
+        #{modTime,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.isinonet.ismartnet.beans.IdcDailyExample" resultType="java.lang.Integer" >
+    select count(*) from tb_idc_daily
+    <if test="_parameter != null" >
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map" >
+    update tb_idc_daily
+    <set >
+      <if test="record.id != null" >
+        id = #{record.id,jdbcType=INTEGER},
+      </if>
+      <if test="record.websiteId != null" >
+        website_id = #{record.websiteId,jdbcType=INTEGER},
+      </if>
+      <if test="record.statDate != null" >
+        stat_date = #{record.statDate,jdbcType=DATE},
+      </if>
+      <if test="record.isMobile != null" >
+        is_mobile = #{record.isMobile,jdbcType=SMALLINT},
+      </if>
+      <if test="record.comeFrom != null" >
+        come_from = #{record.comeFrom,jdbcType=SMALLINT},
+      </if>
+      <if test="record.provinceId != null" >
+        province_id = #{record.provinceId,jdbcType=SMALLINT},
+      </if>
+      <if test="record.isNewComer != null" >
+        is_new_comer = #{record.isNewComer,jdbcType=SMALLINT},
+      </if>
+      <if test="record.isp != null" >
+        isp = #{record.isp,jdbcType=VARCHAR},
+      </if>
+      <if test="record.pv != null" >
+        pv = #{record.pv,jdbcType=INTEGER},
+      </if>
+      <if test="record.uv != null" >
+        uv = #{record.uv,jdbcType=INTEGER},
+      </if>
+      <if test="record.vn != null" >
+        vn = #{record.vn,jdbcType=INTEGER},
+      </if>
+      <if test="record.vt != null" >
+        vt = #{record.vt,jdbcType=INTEGER},
+      </if>
+      <if test="record.spn != null" >
+        spn = #{record.spn,jdbcType=INTEGER},
+      </if>
+      <if test="record.modTime != null" >
+        mod_time = #{record.modTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    <if test="_parameter != null" >
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map" >
+    update tb_idc_daily
+    set id = #{record.id,jdbcType=INTEGER},
+      website_id = #{record.websiteId,jdbcType=INTEGER},
+      stat_date = #{record.statDate,jdbcType=DATE},
+      is_mobile = #{record.isMobile,jdbcType=SMALLINT},
+      come_from = #{record.comeFrom,jdbcType=SMALLINT},
+      province_id = #{record.provinceId,jdbcType=SMALLINT},
+      is_new_comer = #{record.isNewComer,jdbcType=SMALLINT},
+      isp = #{record.isp,jdbcType=VARCHAR},
+      pv = #{record.pv,jdbcType=INTEGER},
+      uv = #{record.uv,jdbcType=INTEGER},
+      vn = #{record.vn,jdbcType=INTEGER},
+      vt = #{record.vt,jdbcType=INTEGER},
+      spn = #{record.spn,jdbcType=INTEGER},
+      mod_time = #{record.modTime,jdbcType=TIMESTAMP}
+    <if test="_parameter != null" >
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.IdcDaily" >
+    update tb_idc_daily
+    <set >
+      <if test="websiteId != null" >
+        website_id = #{websiteId,jdbcType=INTEGER},
+      </if>
+      <if test="statDate != null" >
+        stat_date = #{statDate,jdbcType=DATE},
+      </if>
+      <if test="isMobile != null" >
+        is_mobile = #{isMobile,jdbcType=SMALLINT},
+      </if>
+      <if test="comeFrom != null" >
+        come_from = #{comeFrom,jdbcType=SMALLINT},
+      </if>
+      <if test="provinceId != null" >
+        province_id = #{provinceId,jdbcType=SMALLINT},
+      </if>
+      <if test="isNewComer != null" >
+        is_new_comer = #{isNewComer,jdbcType=SMALLINT},
+      </if>
+      <if test="isp != null" >
+        isp = #{isp,jdbcType=VARCHAR},
+      </if>
+      <if test="pv != null" >
+        pv = #{pv,jdbcType=INTEGER},
+      </if>
+      <if test="uv != null" >
+        uv = #{uv,jdbcType=INTEGER},
+      </if>
+      <if test="vn != null" >
+        vn = #{vn,jdbcType=INTEGER},
+      </if>
+      <if test="vt != null" >
+        vt = #{vt,jdbcType=INTEGER},
+      </if>
+      <if test="spn != null" >
+        spn = #{spn,jdbcType=INTEGER},
+      </if>
+      <if test="modTime != null" >
+        mod_time = #{modTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.IdcDaily" >
+    update tb_idc_daily
+    set website_id = #{websiteId,jdbcType=INTEGER},
+      stat_date = #{statDate,jdbcType=DATE},
+      is_mobile = #{isMobile,jdbcType=SMALLINT},
+      come_from = #{comeFrom,jdbcType=SMALLINT},
+      province_id = #{provinceId,jdbcType=SMALLINT},
+      is_new_comer = #{isNewComer,jdbcType=SMALLINT},
+      isp = #{isp,jdbcType=VARCHAR},
+      pv = #{pv,jdbcType=INTEGER},
+      uv = #{uv,jdbcType=INTEGER},
+      vn = #{vn,jdbcType=INTEGER},
+      vt = #{vt,jdbcType=INTEGER},
+      spn = #{spn,jdbcType=INTEGER},
+      mod_time = #{modTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

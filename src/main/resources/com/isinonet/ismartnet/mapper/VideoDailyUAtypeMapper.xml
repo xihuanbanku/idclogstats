@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.isinonet.ismartnet.mapper.VideoDailyUAtypeMapper" >
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.VideoDailyUAtype" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="ua_type" property="uaType" jdbcType="VARCHAR" />
+    <result column="ua_count" property="uaCount" jdbcType="SMALLINT" />
+    <result column="mod_date" property="modDate" jdbcType="TIMESTAMP" />
+    <result column="atime" property="atime" jdbcType="DATE" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, ua_type, ua_count, mod_date, atime
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from tb_video_daily_uatype
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from tb_video_daily_uatype
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.VideoDailyUAtype" >
+    insert into tb_video_daily_uatype (id, ua_type, ua_count, 
+       atime)
+    values (#{id,jdbcType=INTEGER}, #{uaType,jdbcType=VARCHAR}, #{uaCount,jdbcType=SMALLINT}, 
+      #{atime,jdbcType=DATE})
+  </insert>
+  <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.VideoDailyUAtype" >
+    insert into tb_video_daily_uatype (ua_type, ua_count,
+       atime)
+    values
+    <foreach collection="list" item="item" index="index" separator=",">
+    (#{item.uaType,jdbcType=VARCHAR}, #{item.uaCount,jdbcType=SMALLINT},
+       #{item.atime,jdbcType=DATE})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyUAtype" >
+    insert into tb_video_daily_uatype
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="uaType != null" >
+        ua_type,
+      </if>
+      <if test="uaCount != null" >
+        ua_count,
+      </if>
+      <if test="modDate != null" >
+        mod_date,
+      </if>
+      <if test="atime != null" >
+        atime,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="uaType != null" >
+        #{uaType,jdbcType=VARCHAR},
+      </if>
+      <if test="uaCount != null" >
+        #{uaCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        #{atime,jdbcType=DATE},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyUAtype" >
+    update tb_video_daily_uatype
+    <set >
+      <if test="uaType != null" >
+        ua_type = #{uaType,jdbcType=VARCHAR},
+      </if>
+      <if test="uaCount != null" >
+        ua_count = #{uaCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        mod_date = #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        atime = #{atime,jdbcType=DATE},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.VideoDailyUAtype" >
+    update tb_video_daily_uatype
+    set ua_type = #{uaType,jdbcType=VARCHAR},
+      ua_count = #{uaCount,jdbcType=SMALLINT},
+      mod_date = #{modDate,jdbcType=TIMESTAMP},
+      atime = #{atime,jdbcType=DATE}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

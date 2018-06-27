@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.isinonet.ismartnet.mapper.VideoDailyDurationMapper" >
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.VideoDailyDuration" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="duration_type" property="durationType" jdbcType="VARCHAR" />
+    <result column="duration_count" property="durationCount" jdbcType="SMALLINT" />
+    <result column="mod_date" property="modDate" jdbcType="TIMESTAMP" />
+    <result column="atime" property="atime" jdbcType="DATE" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, duration_type, duration_count, mod_date, atime
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from tb_video_daily_duration
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from tb_video_daily_duration
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.VideoDailyDuration" >
+    insert into tb_video_daily_duration (duration_type, duration_count,
+      atime)
+    values (#{durationType,jdbcType=VARCHAR}, #{durationCount,jdbcType=SMALLINT},
+      #{atime,jdbcType=DATE})
+  </insert>
+  <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.VideoDailyDuration" >
+    insert into tb_video_daily_duration (duration_type, duration_count,
+      atime)
+    values
+    <foreach collection="list" item="item" index="index" separator=",">
+      (#{item.durationType,jdbcType=VARCHAR}, #{item.durationCount,jdbcType=SMALLINT},
+      #{item.atime,jdbcType=DATE})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyDuration" >
+    insert into tb_video_daily_duration
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="durationType != null" >
+        duration_type,
+      </if>
+      <if test="durationCount != null" >
+        duration_count,
+      </if>
+      <if test="modDate != null" >
+        mod_date,
+      </if>
+      <if test="atime != null" >
+        atime,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="durationType != null" >
+        #{durationType,jdbcType=VARCHAR},
+      </if>
+      <if test="durationCount != null" >
+        #{durationCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        #{atime,jdbcType=DATE},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyDuration" >
+    update tb_video_daily_duration
+    <set >
+      <if test="durationType != null" >
+        duration_type = #{durationType,jdbcType=VARCHAR},
+      </if>
+      <if test="durationCount != null" >
+        duration_count = #{durationCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        mod_date = #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        atime = #{atime,jdbcType=DATE},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.VideoDailyDuration" >
+    update tb_video_daily_duration
+    set duration_type = #{durationType,jdbcType=VARCHAR},
+      duration_count = #{durationCount,jdbcType=SMALLINT},
+      mod_date = #{modDate,jdbcType=TIMESTAMP},
+      atime = #{atime,jdbcType=DATE}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

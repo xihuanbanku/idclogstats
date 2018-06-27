@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.isinonet.ismartnet.mapper.WebsiteMapper">
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.Website">
+    <id column="website_id" jdbcType="INTEGER" property="websiteID" />
+    <result column="website_name" jdbcType="VARCHAR" property="websiteName" />
+    <result column="domain" jdbcType="VARCHAR" property="domain" />
+    <result column="user_name" jdbcType="VARCHAR" property="userName" />
+    <result column="passwd" jdbcType="VARCHAR" property="passwd" />
+  </resultMap>
+  <resultMap id="PartResultMap" type="com.isinonet.ismartnet.beans.Website">
+    <id column="website_id" jdbcType="INTEGER" property="websiteID" />
+    <result column="domain" jdbcType="VARCHAR" property="domain" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    website_id, website_name, domain, user_name, passwd
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from tb_idc_website
+    where website_id = #{websiteID,jdbcType=INTEGER}
+  </select>
+  <select id="findAll" resultMap="PartResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from tb_idc_website
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from tb_idc_website
+    where website_id = #{websiteID,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.Website">
+    insert into tb_idc_website ( website_name, domain,
+    user_name, passwd)
+    values ( #{websiteName,jdbcType=VARCHAR}, #{domain,jdbcType=VARCHAR},
+    #{userName,jdbcType=VARCHAR}, #{passwd,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.Website">
+    insert into tb_idc_website ( website_name, domain,
+    user_name)
+    values
+    <foreach collection="list" index="index" item="item" separator=",">
+      ( #{item.domain,jdbcType=VARCHAR}, #{item.domain,jdbcType=VARCHAR},
+      #{item.domain,jdbcType=VARCHAR})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.Website">
+    insert into tb_idc_website
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="websiteID != null">
+        website_id,
+      </if>
+      <if test="websiteName != null">
+        website_name,
+      </if>
+      <if test="domain != null">
+        domain,
+      </if>
+      <if test="userName != null">
+        user_name,
+      </if>
+      <if test="passwd != null">
+        passwd,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="websiteID != null">
+        #{websiteID,jdbcType=INTEGER},
+      </if>
+      <if test="websiteName != null">
+        #{websiteName,jdbcType=VARCHAR},
+      </if>
+      <if test="domain != null">
+        #{domain,jdbcType=VARCHAR},
+      </if>
+      <if test="userName != null">
+        #{userName,jdbcType=VARCHAR},
+      </if>
+      <if test="passwd != null">
+        #{passwd,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.Website">
+    update tb_idc_website
+    <set>
+      <if test="websiteName != null">
+        website_name = #{websiteName,jdbcType=VARCHAR},
+      </if>
+      <if test="domain != null">
+        domain = #{domain,jdbcType=VARCHAR},
+      </if>
+      <if test="userName != null">
+        user_name = #{userName,jdbcType=VARCHAR},
+      </if>
+      <if test="passwd != null">
+        passwd = #{passwd,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where website_id = #{websiteID,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.Website">
+    update tb_idc_website
+    set website_name = #{websiteName,jdbcType=VARCHAR},
+      domain = #{domain,jdbcType=VARCHAR},
+      user_name = #{userName,jdbcType=VARCHAR},
+      passwd = #{passwd,jdbcType=VARCHAR}
+    where website_id = #{websiteID,jdbcType=INTEGER}
+  </update>
+</mapper>

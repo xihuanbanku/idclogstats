@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.isinonet.ismartnet.mapper.VideoDailyVtypeMapper" >
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.VideoDailyVtype" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="v_type" property="vType" jdbcType="VARCHAR" />
+    <result column="v_count" property="vCount" jdbcType="SMALLINT" />
+    <result column="mod_date" property="modDate" jdbcType="TIMESTAMP" />
+    <result column="atime" property="atime" jdbcType="DATE" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, v_type, v_count, mod_date, atime
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from tb_video_daily_vtype
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from tb_video_daily_vtype
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.VideoDailyVtype" >
+    insert into tb_video_daily_vtype (v_type, v_count,
+       atime)
+    values (#{vType,jdbcType=VARCHAR}, #{vCount,jdbcType=SMALLINT},
+       #{atime,jdbcType=DATE})
+  </insert>
+  <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.VideoDailyVtype" >
+    insert into tb_video_daily_vtype (v_type, v_count,
+       atime)
+    values
+    <foreach collection="list" item="item" index="index" separator=",">
+    (#{item.vType,jdbcType=VARCHAR}, #{item.vCount,jdbcType=SMALLINT},
+       #{item.atime,jdbcType=DATE})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyVtype" >
+    insert into tb_video_daily_vtype
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="vType != null" >
+        v_type,
+      </if>
+      <if test="vCount != null" >
+        v_count,
+      </if>
+      <if test="modDate != null" >
+        mod_date,
+      </if>
+      <if test="atime != null" >
+        atime,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="vType != null" >
+        #{vType,jdbcType=VARCHAR},
+      </if>
+      <if test="vCount != null" >
+        #{vCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        #{atime,jdbcType=DATE},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyVtype" >
+    update tb_video_daily_vtype
+    <set >
+      <if test="vType != null" >
+        v_type = #{vType,jdbcType=VARCHAR},
+      </if>
+      <if test="vCount != null" >
+        v_count = #{vCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        mod_date = #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        atime = #{atime,jdbcType=DATE},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.VideoDailyVtype" >
+    update tb_video_daily_vtype
+    set v_type = #{vType,jdbcType=VARCHAR},
+      v_count = #{vCount,jdbcType=SMALLINT},
+      mod_date = #{modDate,jdbcType=TIMESTAMP},
+      atime = #{atime,jdbcType=DATE}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

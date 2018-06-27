@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.isinonet.ismartnet.mapper.RtpvuvMapper">
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.Rtpvuv">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="website_id" jdbcType="INTEGER" property="websiteId" />
+    <result column="stat_date" jdbcType="TIMESTAMP" property="statDate" />
+    <result column="pv" jdbcType="INTEGER" property="pv" />
+    <result column="uv" jdbcType="INTEGER" property="uv" />
+    <result column="mod_time" jdbcType="TIMESTAMP" property="modTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, website_id, stat_date, pv, uv, mod_time
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from tb_idc_rt_stream
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from tb_idc_rt_stream
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.Rtpvuv">
+    insert into tb_idc_rt_stream (website_id, stat_date,
+      pv, uv, mod_time)
+    values (#{websiteId,jdbcType=INTEGER}, #{statDate,jdbcType=TIMESTAMP},
+      #{pv,jdbcType=INTEGER}, #{uv,jdbcType=INTEGER}, #{modTime,jdbcType=TIMESTAMP})
+  </insert>
+  <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.Rtpvuv">
+    insert into tb_idc_rt_stream (website_id, stat_date,
+    pv, uv, mod_time)
+    values
+    <foreach collection="list" index="index" item="item" separator=",">
+      (
+        <if test="item.websiteId != null">
+            #{item.websiteId,jdbcType=INTEGER},
+        </if>
+        <if test="item.websiteId == null">
+            (select website_id from tb_idc_website where domain = #{item.domain,jdbcType=VARCHAR}),
+        </if>
+         #{item.statDate,jdbcType=TIMESTAMP},
+      #{item.pv,jdbcType=INTEGER}, #{item.uv,jdbcType=INTEGER}, #{item.modTime,jdbcType=TIMESTAMP})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.Rtpvuv">
+    insert into tb_idc_rt_stream
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="websiteId != null">
+        website_id,
+      </if>
+      <if test="statDate != null">
+        stat_date,
+      </if>
+      <if test="pv != null">
+        pv,
+      </if>
+      <if test="uv != null">
+        uv,
+      </if>
+      <if test="modTime != null">
+        mod_time,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="websiteId != null">
+        #{websiteId,jdbcType=INTEGER},
+      </if>
+      <if test="statDate != null">
+        #{statDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="pv != null">
+        #{pv,jdbcType=INTEGER},
+      </if>
+      <if test="uv != null">
+        #{uv,jdbcType=INTEGER},
+      </if>
+      <if test="modTime != null">
+        #{modTime,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.Rtpvuv">
+    update tb_idc_rt_stream
+    <set>
+      <if test="websiteId != null">
+        website_id = #{websiteId,jdbcType=INTEGER},
+      </if>
+      <if test="statDate != null">
+        stat_date = #{statDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="pv != null">
+        pv = #{pv,jdbcType=INTEGER},
+      </if>
+      <if test="uv != null">
+        uv = #{uv,jdbcType=INTEGER},
+      </if>
+      <if test="modTime != null">
+        mod_time = #{modTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.Rtpvuv">
+    update tb_idc_rt_stream
+    set website_id = #{websiteId,jdbcType=INTEGER},
+      stat_date = #{statDate,jdbcType=TIMESTAMP},
+      pv = #{pv,jdbcType=INTEGER},
+      uv = #{uv,jdbcType=INTEGER},
+      mod_time = #{modTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+
+</mapper>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.isinonet.ismartnet.mapper.StaticUAtypeMapper" >
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.StaticUAtype" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="p_type" property="pType" jdbcType="VARCHAR" />
+    <result column="is_mobile" property="isMobile" jdbcType="SMALLINT" />
+    <result column="os_type" property="osType" jdbcType="VARCHAR" />
+    <result column="browser_type" property="browserType" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, p_type, is_mobile, os_type, browser_type
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select 
+    <include refid="Base_Column_List" />
+    from tb_static_uatype
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from tb_static_uatype
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
+    insert into tb_static_uatype (id, p_type, is_mobile, 
+      os_type, browser_type)
+    values (#{id,jdbcType=INTEGER}, #{pType,jdbcType=VARCHAR}, #{isMobile,jdbcType=SMALLINT}, 
+      #{osType,jdbcType=VARCHAR}, #{browserType,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
+    insert into tb_static_uatype (id, p_type, is_mobile,
+      os_type, browser_type)
+    values
+    <foreach collection="list" index="index" item="item" separator=",">
+      (#{item.id,jdbcType=INTEGER}, #{item.pType,jdbcType=VARCHAR}, #{item.isMobile,jdbcType=SMALLINT},
+      #{item.osType,jdbcType=VARCHAR}, #{item.browserType,jdbcType=VARCHAR})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
+    insert into tb_static_uatype
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="pType != null" >
+        p_type,
+      </if>
+      <if test="isMobile != null" >
+        is_mobile,
+      </if>
+      <if test="osType != null" >
+        os_type,
+      </if>
+      <if test="browserType != null" >
+        browser_type,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="pType != null" >
+        #{pType,jdbcType=VARCHAR},
+      </if>
+      <if test="isMobile != null" >
+        #{isMobile,jdbcType=SMALLINT},
+      </if>
+      <if test="osType != null" >
+        #{osType,jdbcType=VARCHAR},
+      </if>
+      <if test="browserType != null" >
+        #{browserType,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
+    update tb_static_uatype
+    <set >
+      <if test="pType != null" >
+        p_type = #{pType,jdbcType=VARCHAR},
+      </if>
+      <if test="isMobile != null" >
+        is_mobile = #{isMobile,jdbcType=SMALLINT},
+      </if>
+      <if test="osType != null" >
+        os_type = #{osType,jdbcType=VARCHAR},
+      </if>
+      <if test="browserType != null" >
+        browser_type = #{browserType,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
+    update tb_static_uatype
+    set p_type = #{pType,jdbcType=VARCHAR},
+      is_mobile = #{isMobile,jdbcType=SMALLINT},
+      os_type = #{osType,jdbcType=VARCHAR},
+      browser_type = #{browserType,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
