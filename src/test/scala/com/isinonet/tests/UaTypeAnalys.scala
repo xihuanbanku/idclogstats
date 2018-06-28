@@ -11,7 +11,7 @@ import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.log4j.Logger
 import org.slf4j.LoggerFactory
 
-object T {
+object UaTypeAnalys {
   def main(args: Array[String]): Unit = {
 
     val logger = Logger.getLogger("FILE")
