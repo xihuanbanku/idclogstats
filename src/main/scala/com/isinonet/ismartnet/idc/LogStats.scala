@@ -43,20 +43,23 @@ object LogStats {
     val tb_static_ip = sparkSession.read.jdbc(props.getProperty("url"),
       "tb_static_ip",
       props).collect()
+    val sparkContext = sparkSession.sparkContext
     //广播
-    val broad_tb_static_ip = sparkSession.sparkContext.broadcast(tb_static_ip)
+    val broad_tb_static_ip = sparkContext.broadcast(tb_static_ip)
     //读取ua RDD
     val tb_static_uatype = sparkSession.read.jdbc(props.getProperty("url"),
       "tb_static_uatype",
-      props)
+      props).limit(10)
+    tb_static_uatype.show(false)
     //广播
-    val broad_tb_static_uatype = sparkSession.sparkContext.broadcast(tb_static_uatype)
+    val broad_tb_static_uatype = sparkContext.broadcast(tb_static_uatype)
     //读取website RDD
     val tb_idc_website = sparkSession.read.jdbc(props.getProperty("url"),
       "tb_idc_website",
-      props).select($"website_id", $"domain")
+      props).select($"website_id", $"domain").limit(10)
+    tb_idc_website.show(false)
     //广播
-    val broad_tb_idc_website = sparkSession.sparkContext.broadcast(tb_idc_website)
+    val broad_tb_idc_website = sparkContext.broadcast(tb_idc_website)
 
     //统计pv, uv
     val pv_uv = logToday.filter($"host" =!= "")
@@ -66,7 +69,7 @@ object LogStats {
     println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
     println(s"-------==${broad_tb_static_uatype.value}")
     println(s"===broad_tb_idc_website======$broad_tb_idc_website")
-    println(s"++++++===${broad_tb_idc_website.value}")
+    println(s"++++++$tb_idc_website===${broad_tb_idc_website.value}")
 
     //网站详情关联
     val pv_uv_ua_website = pv_uv.join(broad_tb_static_uatype.value, $"ua" === $"p_type", "left")
