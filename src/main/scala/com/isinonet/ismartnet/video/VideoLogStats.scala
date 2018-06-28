@@ -80,6 +80,7 @@ object VideoLogStats {
       if(list.size >0) {
         mapper.insertBatch(list)
         session.commit
+        list.clear()
         println(s"[${new Date}][UA]${list.size}")
       } else {
         println(s"[${new Date}][UA]no data...")
@@ -88,6 +89,7 @@ object VideoLogStats {
       if(listStaticUAtype.size >0) {
         mapperStaticUAtype.insertBatch(listStaticUAtype)
         session.commit
+        listStaticUAtype.clear()
         println(s"[${new Date}][UA_type]${listStaticUAtype.size}")
       } else {
         println(s"[${new Date}][UA_type]no data...")
@@ -135,6 +137,7 @@ object VideoLogStats {
       if(list.size >0) {
         mapper.insertBatch(list)
         session.commit
+        list.clear()
         println(s"[${new Date}][Duration]${list.size}")
       } else {
         println(s"[${new Date}][Duration]no data...")
@@ -174,6 +177,7 @@ object VideoLogStats {
       if(list.size >0) {
         mapper.insertBatch(list)
         session.commit
+        list.clear()
         println(s"[${new Date}][Vtype]${list.size}")
       } else {
         println(s"[${new Date}][Vtype]no data...")
