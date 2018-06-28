@@ -23,7 +23,7 @@ object LogStats {
 
     val sparkSession = SparkSession.builder()
       .config("spark.sql.shuffle.partitions", "10")
-      .master("local[*]")
+//      .master("local[*]")
       .appName("LogStats")
       .getOrCreate()
 
@@ -35,8 +35,8 @@ object LogStats {
     import scala.collection.JavaConversions._
     val date = args(0)
     //读取日志文件
-//    val logToday = sparkSession.read.json("hdfs://192.168.1.213:9000/ismartnet/" + date + "*")
-    val logToday = sparkSession.read.json("d:/sdc.gz")
+    val logToday = sparkSession.read.json("hdfs://192.168.1.213:9000/ismartnet/" + date + "*")
+//    val logToday = sparkSession.read.json("d:/sdc.gz")
 
     val props: Properties = PropUtils.loadProps("jdbc.properties")
     //读取ip RDD
@@ -61,6 +61,12 @@ object LogStats {
     //统计pv, uv
     val pv_uv = logToday.filter($"host" =!= "")
       .select($"host", $"sip", $"ua", $"atm")
+
+    pv_uv.show(false)
+    println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
+    println(s"-------==${broad_tb_static_uatype.value}")
+    println(s"===broad_tb_idc_website======$broad_tb_idc_website")
+    println(s"++++++===${broad_tb_idc_website.value}")
 
     //网站详情关联
     val pv_uv_ua_website = pv_uv.join(broad_tb_static_uatype.value, $"ua" === $"p_type", "left")

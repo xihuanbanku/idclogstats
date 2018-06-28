@@ -92,6 +92,7 @@ object IdcLogStreaming {
         val mapperWebsite = session.getMapper(classOf[WebsiteMapper])
         mapperWebsite.insertBatch(listWebsite)
         session.commit
+        listWebsite.clear
         println(s"[${new Date}][Website]${listWebsite.size}")
       } else {
         println(s"[${new Date}][Website]no data...")
@@ -100,6 +101,7 @@ object IdcLogStreaming {
         val mapper = session.getMapper(classOf[RtpvuvMapper])
         mapper.insertBatch(list)
         session.commit
+        list.clear
         println(s"[${new Date}][PV_UV]${list.size}")
       } else {
         println(s"[${new Date}][PV_UV]no data...")
