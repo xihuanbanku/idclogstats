@@ -23,7 +23,9 @@ object LogStats {
 
     val sparkSession = SparkSession.builder()
       .config("spark.sql.shuffle.partitions", "10")
-      .master("local[*]").appName("LogStats").getOrCreate()
+      .master("local[*]")
+      .appName("LogStats")
+      .getOrCreate()
 
     //导入spark的隐式转换
 //    import sparkSession.implicits._
@@ -33,28 +35,9 @@ object LogStats {
     import scala.collection.JavaConversions._
     val date = args(0)
     //读取日志文件
-    val logToday = sparkSession.read.json("hdfs://192.168.1.200:9000/lhk/" + date + "*")
+//    val logToday = sparkSession.read.json("hdfs://192.168.1.213:9000/ismartnet/" + date + "*")
+    val logToday = sparkSession.read.json("d:/sdc.gz")
 
-
-//    logToday.filter($"host" =!= "")
-//      .select($"host").distinct().rdd.foreachPartition((it) => {
-//        val session = JDBCHelper.getSession
-//        val mapper = session.getMapper(classOf[WebsiteMapper])
-//        var i = 0
-//        val list = ListBuffer[Website]()
-//        while (it.hasNext) {
-//          val row = it.next()
-//
-//          val unit = new Website
-//          unit.setDomain(row.getString(0))
-//
-//          list+=(unit)
-//          println(i)
-//          i += 1
-//        }
-//      mapper.insertBatch(list)
-//      session.commit
-//    })
     val props: Properties = PropUtils.loadProps("jdbc.properties")
     //读取ip RDD
     val tb_static_ip = sparkSession.read.jdbc(props.getProperty("url"),
@@ -79,49 +62,64 @@ object LogStats {
     val pv_uv = logToday.filter($"host" =!= "")
       .select($"host", $"sip", $"ua", $"atm")
 
-    //自定义时间的统计函数
-    def makeDT(date: String, time: String, tz: String) = {s"$date $time $tz"}
-    val makeDt = udf(makeDT(_:String,_:String,_:String))
-
+    //网站详情关联
     val pv_uv_ua_website = pv_uv.join(broad_tb_static_uatype.value, $"ua" === $"p_type", "left")
       .join(broad_tb_idc_website.value, $"host" === $"domain", "left")
-
+//    pv_uv_ua_website.show(false)
+//    +------+-----+---+-----+----+------+---------+-------+------------+----------+-------+
+//    |host  |sip  |ua |atm  |id  |p_type|is_mobile|os_type|browser_type|website_id|domain |
+//    +------+-----+---+-----+----+------+---------+-------+------------+----------+-------+
     //确定ip归属地
-    val finalResult = pv_uv_ua_website.mapPartitions((it) => {
+    val finalResult = pv_uv_ua_website.mapPartitions(it => {
       val ipDB = broad_tb_static_ip.value
       val list = ListBuffer[IdcDaily]()
 
-      while (it.hasNext) {
+      it.foreach(row => {
         val e = new IdcDaily
-        val row = it.next()
         val sip = row.getLong(1)
 
         //查找对应的IP归属地
-        ipDB.filter(row => sip >= row.getLong(1) && sip <= row.getLong(2)).take(1).foreach(x => {
-          e.setProvinceId(x.getString(3).toShort)
-          e.setIsp(x.getString(4))
+        ipDB.filter(_ip => sip >= _ip.getLong(1) && sip <= _ip.getLong(2)).take(1).foreach(real_ip => {
+          e.setProvinceId(real_ip.getString(3).toShort)
+          e.setIsp(real_ip.getString(4))
         })
-        e.setWebsiteId(row.getInt(8))
-        e.setIsMobile(row.getAs[Short](5))
+        e.setWebsiteId(row.getAs[Int](9))
+        e.setIsMobile(row.getAs[Short](6))
         e.setSip(sip)
+        e.setAtm(row.getAs[Long](3).toString)
         list.+=(e)
 
-      }
+      })
       list.toIterator
-    })(Encoders.bean(classOf[IdcDaily])).toDF().groupBy($"isMobile", $"isp", $"provinceId", $"websiteId")
-      .agg(countDistinct($"sip").as("uv"), count($"sip").as("pv"))
-      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv")
+    })(Encoders.bean(classOf[IdcDaily])).toDF()
+      .groupBy($"isMobile", $"isp", $"provinceId", $"websiteId")
+      .agg(countDistinct($"sip").as("uv"), count($"sip").as("pv"), concat_ws(",", collect_set($"atm")).as("atm_string"))
+      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv", $"atm_string")
 
     //保存到pg数据库
-    finalResult.foreachPartition((it) => {
+    finalResult.foreachPartition(it => {
+
       val session = JDBCHelper.getSession
       val mapper = session.getMapper(classOf[IdcDailyMapper])
-      var i = 0
       val list = ListBuffer[IdcDaily]()
       val sdf = new SimpleDateFormat("yyyy-MM-dd")
-      while (it.hasNext) {
-        val row = it.next()
 
+      it.filter(_.getString(6) != "").foreach(row => {
+
+        var current = 0l
+        var timeSum = 0l
+        var viewCount = 0
+        row.getAs[String](6).split(",").map(_.toLong).sorted.foreach(now => {
+          val result = now - current
+          //两次时间间隔小于 5分钟(300s), 计入时长统计
+          if(result <300) {
+            timeSum += result
+          } else {
+            //否则访问次数+1
+            viewCount += 1
+          }
+          current = now
+        })
         val unit = new IdcDaily
         unit.setIsMobile(row.getShort(0))
         unit.setIsp(row.getString(1))
@@ -129,16 +127,16 @@ object LogStats {
         unit.setWebsiteId(row.getInt(3))
         unit.setUv(row.getLong(4))
         unit.setPv(row.getLong(5))
+        unit.setVn(viewCount)
+        unit.setVt((timeSum/60).toInt)
         unit.setStatDate(sdf.parse(date))
-
         list+=(unit)
-        println(i)
-        i += 1
-      }
-      if(list.size >0) {
-        mapper.insertBatch(list)
-        session.commit
-      }
+        if(list.size >0) {
+          mapper.insertBatch(list)
+          session.commit
+        }
+      })
+
     })
     sparkSession.stop()
   }
