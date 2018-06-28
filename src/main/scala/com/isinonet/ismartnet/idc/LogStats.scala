@@ -94,7 +94,7 @@ object LogStats {
     })(Encoders.bean(classOf[IdcDaily])).toDF()
       .groupBy($"isMobile", $"isp", $"provinceId", $"websiteId")
       .agg(countDistinct($"sip").as("uv"), count($"sip").as("pv"), concat_ws(",", collect_set($"atm")).as("atm_string"))
-      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv", $"atm_string")
+//      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv", $"atm_string")
 
     //保存到pg数据库
     finalResult.foreachPartition(it => {
@@ -104,6 +104,7 @@ object LogStats {
       val list = ListBuffer[IdcDaily]()
       val sdf = new SimpleDateFormat("yyyy-MM-dd")
 
+      //循环partition中的所有记录
       it.filter(_.getString(6) != "").foreach(row => {
 
         var current = 0l
@@ -133,6 +134,7 @@ object LogStats {
         list+=(unit)
         if(list.size >0) {
           mapper.insertBatch(list)
+          list.clear()
           session.commit
         }
       })

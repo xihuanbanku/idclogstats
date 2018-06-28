@@ -166,4 +166,26 @@ public class IdcDaily implements Serializable{
     public void setSip(Long sip) {
         this.sip = sip;
     }
+
+    @Override
+    public String toString() {
+        return "IdcDaily{" +
+                "id=" + id +
+                ", websiteId=" + websiteId +
+                ", statDate=" + statDate +
+                ", isMobile=" + isMobile +
+                ", comeFrom=" + comeFrom +
+                ", provinceId=" + provinceId +
+                ", isNewComer=" + isNewComer +
+                ", isp='" + isp + '\'' +
+                ", pv=" + pv +
+                ", uv=" + uv +
+                ", vn=" + vn +
+                ", vt=" + vt +
+                ", spn=" + spn +
+                ", sip=" + sip +
+                ", modTime=" + modTime +
+                ", atm='" + atm + '\'' +
+                '}';
+    }
 }
