@@ -2,10 +2,11 @@ package com.isinonet.ismartnet.beans;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+import java.io.Serializable;
 import java.util.Date;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class IdcDaily {
+public class IdcDaily implements Serializable{
     private Integer id;
 
     private Integer websiteId;
@@ -35,6 +36,16 @@ public class IdcDaily {
     private Long sip;
 
     private Date modTime;
+
+    private String atm;
+
+    public String getAtm() {
+        return atm;
+    }
+
+    public void setAtm(String atm) {
+        this.atm = atm;
+    }
 
     public Integer getId() {
         return id;
@@ -154,5 +165,27 @@ public class IdcDaily {
 
     public void setSip(Long sip) {
         this.sip = sip;
+    }
+
+    @Override
+    public String toString() {
+        return "IdcDaily{" +
+                "id=" + id +
+                ", websiteId=" + websiteId +
+                ", statDate=" + statDate +
+                ", isMobile=" + isMobile +
+                ", comeFrom=" + comeFrom +
+                ", provinceId=" + provinceId +
+                ", isNewComer=" + isNewComer +
+                ", isp='" + isp + '\'' +
+                ", pv=" + pv +
+                ", uv=" + uv +
+                ", vn=" + vn +
+                ", vt=" + vt +
+                ", spn=" + spn +
+                ", sip=" + sip +
+                ", modTime=" + modTime +
+                ", atm='" + atm + '\'' +
+                '}';
     }
 }

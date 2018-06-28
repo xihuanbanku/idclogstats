@@ -288,5 +288,16 @@ rowkey |
 
 ## 五.疑问
 
-> 无
-
+> 5.1 如果出现 错误 "hadoop is not allowed to impersonate hadoop"
+      将以下配置增加到docker2的namenode上(core-site.xml), 重启hdfs即可
+      
+```
+<property>
+  <name>hadoop.proxyuser.hadoop.hosts</name>
+  <value>*</value>
+</property>
+<property>
+  <name>hadoop.proxyuser.hadoop.groups</name>
+ <value>hadoop</value>
+</property>
+```
