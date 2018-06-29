@@ -23,6 +23,19 @@ import scala.collection.mutable.ListBuffer
 object VideoLogStats {
 
   def main(args: Array[String]): Unit = {
+    if(args.length % 2 != 0) {
+      throw new IllegalArgumentException(
+        s"""
+           |Usage:
+           | ./video_start.sh [date] [hdfs] <expect date> <expect hdfs>
+           |
+           | date:        要计算的日期
+           | hdfs:        输入文件
+           | expect date: 期望计算的日期
+           | expect hdfs: 期望计算的文件
+           |
+         """.stripMargin)
+    }
     val sparkSession = SparkSession.builder().appName("VideoLogStats")
       .config("spark.sql.shuffle.partitions", "10").getOrCreate()
     sparkSession.sparkContext.setLogLevel("WARN")
@@ -30,11 +43,13 @@ object VideoLogStats {
     import sparkSession.implicits._
 
     import scala.collection.JavaConversions._
-    val date = args(0)
+    val date = if(args.length > 2) args(2) else args(0)
+    val hdfsPath = if(args.length > 2) args(3) else args(1)
+
     val aids = Array(9,10,13,14,16,32,5,6,1012)
-    val cacheToday = sparkSession.read.json(args(1))
+    val cacheToday = sparkSession.read.json(hdfsPath)
         .filter(x => {
-            aids.contains(x.getString(0).toInt)
+          x.getString(0)!= null && aids.contains(x.getString(0).toInt)
         }).cache
 
     val props: Properties = PropUtils.loadProps("jdbc.properties")

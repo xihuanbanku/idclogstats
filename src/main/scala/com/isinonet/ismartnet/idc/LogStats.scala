@@ -1,7 +1,7 @@
 package com.isinonet.ismartnet.idc
 
 import java.text.SimpleDateFormat
-import java.util.Properties
+import java.util.{Date, Properties}
 
 import com.isinonet.ismartnet.beans.IdcDaily
 import com.isinonet.ismartnet.mapper.IdcDailyMapper
@@ -20,6 +20,19 @@ object LogStats {
 
 
   def main(args: Array[String]): Unit = {
+    if(args.length % 2 != 0) {
+      throw new IllegalArgumentException(
+        s"""
+           |Usage:
+           | ./video_start.sh [date] [hdfs] <expect date> <expect hdfs>
+           |
+           | date:        要计算的日期
+           | hdfs:        输入文件
+           | expect date: 期望计算的日期
+           | expect hdfs: 期望计算的文件
+           |
+         """.stripMargin)
+    }
 
     val sparkSession = SparkSession.builder()
       .config("spark.sql.shuffle.partitions", "10")
@@ -33,9 +46,10 @@ object LogStats {
     //scala  转为java 的集合
 //    import scala.collection.JavaConversions._
     import scala.collection.JavaConversions._
-    val date = args(0)
+    val date = if(args.length > 2) args(2) else args(0)
+    val hdfsPath = if(args.length > 2) args(3) else args(1)
     //读取日志文件
-    val logToday = sparkSession.read.json("hdfs://192.168.1.213:9000/ismartnet/" + date + "*")
+    val logToday = sparkSession.read.json(hdfsPath)
 //    val logToday = sparkSession.read.json("d:/sdc.gz")
 
     val props: Properties = PropUtils.loadProps("jdbc.properties")
@@ -49,31 +63,31 @@ object LogStats {
     //读取ua RDD
     val tb_static_uatype = sparkSession.read.jdbc(props.getProperty("url"),
       "tb_static_uatype",
-      props).limit(10)
-    tb_static_uatype.show(false)
+      props)
+//    tb_static_uatype.show(false)
     //广播
-    val broad_tb_static_uatype = sparkContext.broadcast(tb_static_uatype)
+//    val broad_tb_static_uatype = sparkContext.broadcast(tb_static_uatype)
     //读取website RDD
     val tb_idc_website = sparkSession.read.jdbc(props.getProperty("url"),
       "tb_idc_website",
-      props).select($"website_id", $"domain").limit(10)
-    tb_idc_website.show(false)
+      props).select($"website_id", $"domain")
+//    tb_idc_website.show(false)
     //广播
-    val broad_tb_idc_website = sparkContext.broadcast(tb_idc_website)
+//    val broad_tb_idc_website = sparkContext.broadcast(tb_idc_website)
 
     //统计pv, uv
     val pv_uv = logToday.filter($"host" =!= "")
       .select($"host", $"sip", $"ua", $"atm")
 
-    pv_uv.show(false)
-    println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
-    println(s"-------==${broad_tb_static_uatype.value}")
-    println(s"===broad_tb_idc_website======$broad_tb_idc_website")
-    println(s"++++++$tb_idc_website===${broad_tb_idc_website.value}")
+//    pv_uv.show(false)
+//    println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
+//    println(s"-------==${broad_tb_static_uatype.value}")
+//    println(s"===broad_tb_idc_website======$broad_tb_idc_website")
+//    println(s"++++++$tb_idc_website===${broad_tb_idc_website.value}")
 
     //网站详情关联
-    val pv_uv_ua_website = pv_uv.join(broad_tb_static_uatype.value, $"ua" === $"p_type", "left")
-      .join(broad_tb_idc_website.value, $"host" === $"domain", "left")
+    val pv_uv_ua_website = pv_uv.join(tb_static_uatype, $"ua" === $"p_type", "left")
+      .join(tb_idc_website, $"host" === $"domain", "left")
 //    pv_uv_ua_website.show(false)
 //    +------+-----+---+-----+----+------+---------+-------+------------+----------+-------+
 //    |host  |sip  |ua |atm  |id  |p_type|is_mobile|os_type|browser_type|website_id|domain |
@@ -141,12 +155,12 @@ object LogStats {
         unit.setVt((timeSum/60).toInt)
         unit.setStatDate(sdf.parse(date))
         list+=(unit)
-        if(list.size >0) {
-          mapper.insertBatch(list)
-          list.clear()
-          session.commit
-        }
       })
+      if(list.size >0) {
+        println(s"[${new Date}][size]${mapper.insertBatch(list)}")
+        list.clear()
+        session.commit
+      }
 
     })
     sparkSession.stop()
