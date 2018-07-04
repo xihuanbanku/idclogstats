@@ -1,7 +1,7 @@
 package com.isinonet.ismartnet.idc
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Properties}
+import java.util.{Calendar, Date, Properties}
 
 import com.isinonet.ismartnet.beans.IdcDaily
 import com.isinonet.ismartnet.mapper.IdcDailyMapper
@@ -9,7 +9,7 @@ import com.isinonet.ismartnet.utils.{JDBCHelper, PropUtils}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Encoders, SparkSession}
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
   * idc日志分析
@@ -27,7 +27,7 @@ object LogStats {
            | ./video_start.sh [date] [hdfs] <expect date> <expect hdfs>
            |
            | date:        要计算的日期
-           | hdfs:        输入文件
+           | hdfs:        输入文件路径, 以/结尾
            | expect date: 期望计算的日期
            | expect hdfs: 期望计算的文件
            |
@@ -48,8 +48,20 @@ object LogStats {
     import scala.collection.JavaConversions._
     val date = if(args.length > 2) args(2) else args(0)
     val hdfsPath = if(args.length > 2) args(3) else args(1)
+    //准备前7天的ip文件, 为判断新老用户使用
+    val format = new SimpleDateFormat("yyyy-MM-dd")
+    val calendar = Calendar.getInstance()
+    calendar.setTime(format.parse(date))
+    val dates = new ArrayBuffer[String]
+    for (elem <- 1 to 7) {
+      calendar.add(Calendar.DAY_OF_MONTH, -1)
+      dates += hdfsPath + format.format(calendar.getTime)+"*"
+    }
+    val _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5), dates(6))
+      .select($"sip".as("sip_7")).distinct()
+    calendar.clear()
     //读取日志文件
-    val logToday = sparkSession.read.json(hdfsPath)
+    val logToday = sparkSession.read.json(hdfsPath + date + "*")
 //    val logToday = sparkSession.read.json("d:/sdc.gz")
 
     val props: Properties = PropUtils.loadProps("jdbc.properties")
@@ -75,9 +87,25 @@ object LogStats {
     //广播
 //    val broad_tb_idc_website = sparkContext.broadcast(tb_idc_website)
 
-    //统计pv, uv
-    val pv_uv = logToday.filter($"host" =!= "")
-      .select($"host", $"sip", $"ua", $"atm")
+    //统计pv, uv, 过滤掉 jpg, png, bmp, js, css, xml, swf, xls, rar, zip, gif, woff, ttf, eot, otf, svg, json
+    val pv_uv = logToday.filter("host != '' and LOCATE(url, '.js') <=0 " +
+      " and LOCATE(url, '.jpg') <=0" +
+      " and LOCATE(url, '.png') <=0" +
+      " and LOCATE(url, '.bmp') <=0" +
+      " and LOCATE(url, '.css') <=0" +
+      " and LOCATE(url, '.xml') <=0" +
+      " and LOCATE(url, '.swf') <=0" +
+      " and LOCATE(url, '.xls') <=0" +
+      " and LOCATE(url, '.rar') <=0" +
+      " and LOCATE(url, '.zip') <=0" +
+      " and LOCATE(url, '.gif') <=0" +
+      " and LOCATE(url, '.woff') <=0" +
+      " and LOCATE(url, '.ttf') <=0" +
+      " and LOCATE(url, '.eot') <=0" +
+      " and LOCATE(url, '.otf') <=0" +
+      " and LOCATE(url, '.svg') <=0" +
+      " and LOCATE(url, '.json') <=0")
+      .select($"host", $"sip", $"ua", $"atm", $"ref")
 
 //    pv_uv.show(false)
 //    println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
@@ -86,37 +114,59 @@ object LogStats {
 //    println(s"++++++$tb_idc_website===${broad_tb_idc_website.value}")
 
     //网站详情关联
-    val pv_uv_ua_website = pv_uv.join(tb_static_uatype, $"ua" === $"p_type", "left")
+    val pv_uv_ua_website = pv_uv.join(tb_static_uatype, $"ua" === $"ua_type", "left")
       .join(tb_idc_website, $"host" === $"domain", "left")
 //    pv_uv_ua_website.show(false)
-//    +------+-----+---+-----+----+------+---------+-------+------------+----------+-------+
-//    |host  |sip  |ua |atm  |id  |p_type|is_mobile|os_type|browser_type|website_id|domain |
-//    +------+-----+---+-----+----+------+---------+-------+------------+----------+-------+
+//    +------+-----+---+-----+----+----+------+---------+-------+------------+----------+-------+
+//    |host  |sip  |ua |atm  |ref |id  |ua_type|is_mobile|os_type|browser_type|website_id|domain |
+//    +------+-----+---+-----+----+----+------+---------+-------+------------+----------+-------+
+    //与7天前的用户关联判断是否是新用户
+    val pv_uv_ua_website_7user = pv_uv_ua_website.join(_7daysUsers, $"sip" === $"sip_7", "left")
     //确定ip归属地
-    val finalResult = pv_uv_ua_website.mapPartitions(it => {
+    val finalResult = pv_uv_ua_website_7user.mapPartitions(it => {
       val ipDB = broad_tb_static_ip.value
       val list = ListBuffer[IdcDaily]()
 
       it.foreach(row => {
         val e = new IdcDaily
-        val sip = row.getLong(1)
+        val sip = row.getAs[Long]("sip")
 
         //查找对应的IP归属地
         ipDB.filter(_ip => sip >= _ip.getLong(1) && sip <= _ip.getLong(2)).take(1).foreach(real_ip => {
           e.setProvinceId(real_ip.getString(3).toShort)
           e.setIsp(real_ip.getString(4))
         })
-        e.setWebsiteId(row.getAs[Int](9))
-        e.setIsMobile(row.getAs[Short](6))
+        //通过ref确认来源
+        val ref = row.getAs[String]("ref")
+        if(ref == null) {
+          e.setComeFrom(1.toShort)
+        } else if(ref.indexOf("www.baidu.com") > 0
+          || ref.indexOf("www.so.com") > 0
+          || ref.indexOf("www.soso.com") > 0
+          || ref.indexOf("www.sogou.com") > 0
+          || ref.indexOf("www.yahoo.com") > 0
+          || ref.indexOf("www.google.com") > 0) {
+          e.setComeFrom(2.toShort)
+        } else {
+          e.setComeFrom(3.toShort)
+        }
+        if(row.getAs[Int]("sip_7") != null) {
+          e.setIsNewComer(0.toShort)
+        } else {
+          e.setIsNewComer(1.toShort)
+        }
+        e.setWebsiteId(row.getAs[Int]("website_id"))
+        e.setIsMobile(row.getAs[Short]("is_mobile"))
         e.setSip(sip)
-        e.setAtm(row.getAs[Long](3).toString)
+        e.setAtm(row.getAs[Long]("atm").toString)
         list.+=(e)
 
       })
       list.toIterator
     })(Encoders.bean(classOf[IdcDaily])).toDF()
-      .groupBy($"isMobile", $"isp", $"provinceId", $"websiteId")
-      .agg(countDistinct($"sip").as("uv"), count($"sip").as("pv"), concat_ws(",", collect_set($"atm")).as("atm_string"))
+      .groupBy($"isMobile", $"isp", $"provinceId", $"websiteId", $"comeFrom", $"isNewComer")
+      .agg(countDistinct($"sip").as("uv"), count($"sip").as("pv")
+        , concat_ws(",", collect_set($"atm")).as("atm_string"))
 //      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv", $"atm_string")
 
     //保存到pg数据库
@@ -128,31 +178,44 @@ object LogStats {
       val sdf = new SimpleDateFormat("yyyy-MM-dd")
 
       //循环partition中的所有记录
-      it.filter(_.getString(6) != "").foreach(row => {
+      it.filter(_.getAs[String]("atm_string") != "").foreach(row => {
 
         var current = 0l
         var timeSum = 0l
         var viewCount = 0
-        row.getAs[String](6).split(",").map(_.toLong).sorted.foreach(now => {
+        var singlePageCount = 0
+        var lastPeriod = false
+        //计算时长
+        row.getAs[String]("atm_string").split(",").map(_.toLong).sorted.foreach(now => {
           val result = now - current
-          //两次时间间隔小于 5分钟(300s), 计入时长统计
-          if(result <300) {
+          //两次时间间隔小于 30分钟(1800s), 计入时长统计
+          if(result <1800) {
             timeSum += result
+            lastPeriod = false
           } else {
             //否则访问次数+1
             viewCount += 1
+            //如果是连续两次间隔(lastPeriod)都大于阈值, spn+1
+            if(lastPeriod) {
+              singlePageCount += 1
+            } else {
+              lastPeriod = true
+            }
           }
           current = now
         })
         val unit = new IdcDaily
-        unit.setIsMobile(row.getShort(0))
-        unit.setIsp(row.getString(1))
-        unit.setProvinceId(row.getShort(2))
-        unit.setWebsiteId(row.getInt(3))
-        unit.setUv(row.getLong(4))
-        unit.setPv(row.getLong(5))
+        unit.setIsMobile(row.getAs[Short]("isMobile"))
+        unit.setIsp(row.getAs[String]("isp"))
+        unit.setProvinceId(row.getAs[Short]("provinceId"))
+        unit.setWebsiteId(row.getAs[Int]("websiteId"))
+        unit.setComeFrom(row.getAs[Short]("comeFrom"))
+        unit.setIsNewComer(row.getAs[Short]("isNewComer"))
+        unit.setUv(row.getAs[Long]("uv"))
+        unit.setPv(row.getAs[Long]("pv"))
         unit.setVn(viewCount)
-        unit.setVt((timeSum/60).toInt)
+        unit.setVt(timeSum.toInt)
+        unit.setSpn(singlePageCount)
         unit.setStatDate(sdf.parse(date))
         list+=(unit)
       })

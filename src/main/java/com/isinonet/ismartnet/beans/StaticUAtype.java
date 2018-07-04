@@ -3,7 +3,7 @@ package com.isinonet.ismartnet.beans;
 public class StaticUAtype {
     private Integer id;
 
-    private String pType;
+    private String uaType;
 
     private Short isMobile;
 
@@ -19,12 +19,12 @@ public class StaticUAtype {
         this.id = id;
     }
 
-    public String getpType() {
-        return pType;
+    public String getUaType() {
+        return uaType;
     }
 
-    public void setpType(String pType) {
-        this.pType = pType == null ? null : pType.trim();
+    public void setUaType(String uaType) {
+        this.uaType = uaType == null ? null : uaType.trim();
     }
 
     public Short getIsMobile() {

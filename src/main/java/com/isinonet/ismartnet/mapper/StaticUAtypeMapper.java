@@ -18,4 +18,6 @@ public interface StaticUAtypeMapper {
     int updateByPrimaryKeySelective(StaticUAtype record);
 
     int updateByPrimaryKey(StaticUAtype record);
+
+    List<StaticUAtype> findAll();
 }

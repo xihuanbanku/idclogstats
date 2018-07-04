@@ -125,15 +125,13 @@
     insert into tb_idc_daily (website_id, stat_date,
       is_mobile, come_from, province_id,
       is_new_comer, isp, pv,
-      uv, vn, vt, spn,
-      mod_time)
+      uv, vn, vt, spn)
     values
     <foreach collection="list" item="item" index="index" separator=",">
       (#{item.websiteId,jdbcType=INTEGER}, #{item.statDate,jdbcType=DATE},
       #{item.isMobile,jdbcType=SMALLINT}, #{item.comeFrom,jdbcType=SMALLINT}, #{item.provinceId,jdbcType=SMALLINT},
       #{item.isNewComer,jdbcType=SMALLINT}, #{item.isp,jdbcType=VARCHAR}, #{item.pv,jdbcType=INTEGER},
-      #{item.uv,jdbcType=INTEGER}, #{item.vn,jdbcType=INTEGER}, #{item.vt,jdbcType=INTEGER}, #{item.spn,jdbcType=INTEGER},
-      #{item.modTime,jdbcType=TIMESTAMP})
+      #{item.uv,jdbcType=INTEGER}, #{item.vn,jdbcType=INTEGER}, #{item.vt,jdbcType=INTEGER}, #{item.spn,jdbcType=INTEGER})
     </foreach>
   </insert>
   <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.IdcDaily" >

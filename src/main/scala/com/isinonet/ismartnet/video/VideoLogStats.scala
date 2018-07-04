@@ -30,7 +30,7 @@ object VideoLogStats {
            | ./video_start.sh [date] [hdfs] <expect date> <expect hdfs>
            |
            | date:        要计算的日期
-           | hdfs:        输入文件
+           | hdfs:        输入文件路径, 以/结尾
            | expect date: 期望计算的日期
            | expect hdfs: 期望计算的文件
            |
@@ -47,7 +47,7 @@ object VideoLogStats {
     val hdfsPath = if(args.length > 2) args(3) else args(1)
 
     val aids = Array(9,10,13,14,16,32,5,6,1012)
-    val cacheToday = sparkSession.read.json(hdfsPath)
+    val cacheToday = sparkSession.read.json(hdfsPath+date)
         .filter(x => {
           x.getString(0)!= null && aids.contains(x.getString(0).toInt)
         }).cache
@@ -55,11 +55,11 @@ object VideoLogStats {
     val props: Properties = PropUtils.loadProps("jdbc.properties")
     //1. 统计UA, 需要按照 ip排重
     //读取现有的UA类型
-    val tb_static_uatype = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_static_uatype", props).select("id", "p_type").cache()
+    val tb_static_uatype = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_static_uatype", props).select("id", "ua_type").cache()
     val broadcast_ua = sparkSession.sparkContext.broadcast(tb_static_uatype)
     //日志先group by 然后与ua表 left join
     val dataset: Dataset[Row] = cacheToday.where("ua is not null").select($"sip",$"ua").distinct().groupBy($"ua").agg(count($"ua").as("c_ua"))
-    val joinedDataframe = dataset.join(broadcast_ua.value, $"ua" === $"p_type", "left")
+    val joinedDataframe = dataset.join(broadcast_ua.value, $"ua" === $"ua_type", "left")
 
     //入库
 //    dataset.foreachPartition(data2Postgres(_, "tb_video_daily_uatype", "ua_type, ua_count", date))
@@ -79,7 +79,7 @@ object VideoLogStats {
           uaID += 1
           val staticUAtype = new StaticUAtype
           staticUAtype.setId(uaID)
-          staticUAtype.setpType(row.getString(0))
+          staticUAtype.setUaType(row.getString(0))
           listStaticUAtype +=(staticUAtype)
           unit.setUaType(uaID.toString)
         } else {
@@ -159,10 +159,11 @@ object VideoLogStats {
       }
     })
 
-
+//仅为测试用
+    val tmpdateDelete = date.substring(0, 10)
     //3. 视频类型分布
     //读取上报的url1
-    val tb_data2 = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_iprobe_data2", Array[String]("create_time > '"+date+" 00:00:00'", "create_time <= '"+date+" 23:59:59'", "rflag in(1, 3)"), props).select("url1")
+    val tb_data2 = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_iprobe_data2", Array[String]("create_time > '"+tmpdateDelete+" 00:00:00'", "create_time <= '"+tmpdateDelete+" 23:59:59'", "rflag in(1, 3)"), props).select("url1")
     //读取豆瓣中的url1
     val tb_media_meta_url_map = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_media_meta_url_map", props).select("url", "media_uid").cache()
     //读取豆瓣中的视频类型
@@ -203,8 +204,8 @@ object VideoLogStats {
     //读取当天  18-22点上报的sip, url1
 
     val sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-    val s_date = sdf.parse(date+" 18:00:00").getTime
-    val e_date = sdf.parse(date+" 22:00:00").getTime
+    val s_date = sdf.parse(tmpdateDelete+" 18:00:00").getTime
+    val e_date = sdf.parse(tmpdateDelete+" 22:00:00").getTime
 
     val tb_data2_18_22 = cacheToday.select("sip", "aid", "url", "cid")
       .where("atm >= "+s_date+" and atm < "+e_date)

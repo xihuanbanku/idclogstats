@@ -3,13 +3,13 @@
 <mapper namespace="com.isinonet.ismartnet.mapper.StaticUAtypeMapper" >
   <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.StaticUAtype" >
     <id column="id" property="id" jdbcType="INTEGER" />
-    <result column="p_type" property="pType" jdbcType="VARCHAR" />
+    <result column="ua_type" property="uaType" jdbcType="VARCHAR" />
     <result column="is_mobile" property="isMobile" jdbcType="SMALLINT" />
     <result column="os_type" property="osType" jdbcType="VARCHAR" />
     <result column="browser_type" property="browserType" jdbcType="VARCHAR" />
   </resultMap>
   <sql id="Base_Column_List" >
-    id, p_type, is_mobile, os_type, browser_type
+    id, ua_type, is_mobile, os_type, browser_type
   </sql>
   <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
     select 
@@ -17,22 +17,27 @@
     from tb_static_uatype
     where id = #{id,jdbcType=INTEGER}
   </select>
+  <select id="findAll" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from tb_static_uatype order by id
+  </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
     delete from tb_static_uatype
     where id = #{id,jdbcType=INTEGER}
   </delete>
   <insert id="insert" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
-    insert into tb_static_uatype (id, p_type, is_mobile, 
+    insert into tb_static_uatype (id, ua_type, is_mobile, 
       os_type, browser_type)
-    values (#{id,jdbcType=INTEGER}, #{pType,jdbcType=VARCHAR}, #{isMobile,jdbcType=SMALLINT}, 
+    values (#{id,jdbcType=INTEGER}, #{uaType,jdbcType=VARCHAR}, #{isMobile,jdbcType=SMALLINT}, 
       #{osType,jdbcType=VARCHAR}, #{browserType,jdbcType=VARCHAR})
   </insert>
   <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
-    insert into tb_static_uatype (id, p_type, is_mobile,
+    insert into tb_static_uatype (id, ua_type, is_mobile,
       os_type, browser_type)
     values
     <foreach collection="list" index="index" item="item" separator=",">
-      (#{item.id,jdbcType=INTEGER}, #{item.pType,jdbcType=VARCHAR}, #{item.isMobile,jdbcType=SMALLINT},
+      (#{item.id,jdbcType=INTEGER}, #{item.uaType,jdbcType=VARCHAR}, #{item.isMobile,jdbcType=SMALLINT},
       #{item.osType,jdbcType=VARCHAR}, #{item.browserType,jdbcType=VARCHAR})
     </foreach>
   </insert>
@@ -42,8 +47,8 @@
       <if test="id != null" >
         id,
       </if>
-      <if test="pType != null" >
-        p_type,
+      <if test="uaType != null" >
+        ua_type,
       </if>
       <if test="isMobile != null" >
         is_mobile,
@@ -59,8 +64,8 @@
       <if test="id != null" >
         #{id,jdbcType=INTEGER},
       </if>
-      <if test="pType != null" >
-        #{pType,jdbcType=VARCHAR},
+      <if test="uaType != null" >
+        #{uaType,jdbcType=VARCHAR},
       </if>
       <if test="isMobile != null" >
         #{isMobile,jdbcType=SMALLINT},
@@ -76,8 +81,8 @@
   <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
     update tb_static_uatype
     <set >
-      <if test="pType != null" >
-        p_type = #{pType,jdbcType=VARCHAR},
+      <if test="uaType != null" >
+        ua_type = #{uaType,jdbcType=VARCHAR},
       </if>
       <if test="isMobile != null" >
         is_mobile = #{isMobile,jdbcType=SMALLINT},
@@ -93,7 +98,7 @@
   </update>
   <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.StaticUAtype" >
     update tb_static_uatype
-    set p_type = #{pType,jdbcType=VARCHAR},
+    set ua_type = #{uaType,jdbcType=VARCHAR},
       is_mobile = #{isMobile,jdbcType=SMALLINT},
       os_type = #{osType,jdbcType=VARCHAR},
       browser_type = #{browserType,jdbcType=VARCHAR}
