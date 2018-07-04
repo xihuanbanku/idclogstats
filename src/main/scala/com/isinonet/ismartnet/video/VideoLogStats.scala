@@ -47,7 +47,7 @@ object VideoLogStats {
     val hdfsPath = if(args.length > 2) args(3) else args(1)
 
     val aids = Array(9,10,13,14,16,32,5,6,1012)
-    val cacheToday = sparkSession.read.json(hdfsPath+date)
+    val cacheToday = sparkSession.read.json(hdfsPath+date+"*")
         .filter(x => {
           x.getString(0)!= null && aids.contains(x.getString(0).toInt)
         }).cache
