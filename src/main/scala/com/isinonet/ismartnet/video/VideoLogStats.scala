@@ -163,7 +163,10 @@ object VideoLogStats {
     val hour = date.substring(11, 13)
 //    //3. 视频类型分布
     //读取上报的url1
-    val tb_data2 = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_iprobe_data2", Array[String]("create_time > '"+tmpdateDelete+" "+ hour +":00:00'", "create_time <= '"+tmpdateDelete+" "+ hour +":59:59'", "rflag in(1, 3)"), props).select("url1")
+    val tb_data2 = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_iprobe_data2", props)
+      .where("create_time > '"+tmpdateDelete+" "+ hour +":00:00' and create_time <= '"+tmpdateDelete+" "+ hour +":59:59'")
+      .select($"url1")
+//    tb_data2.show(false)
     //读取豆瓣中的url1
     val tb_media_meta_url_map = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_media_meta_url_map", props).select("url", "media_uid").cache()
     //读取豆瓣中的视频类型
