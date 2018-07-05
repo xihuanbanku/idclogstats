@@ -31,7 +31,27 @@ object IdcLogStreaming {
     val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers)
     val messages = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topicSet)
 
-    val lines = messages.map(_._2).map(JSON.parseObject(_)).filter(_.containsKey("host"))
+    val lines = messages.map(_._2).map(JSON.parseObject(_)).filter(json => {
+      val url = json.getString("url");
+      json.containsKey("host") &&
+        url.indexOf(".js") <= 0 &&
+        url.indexOf(".jpg") <= 0 &&
+        url.indexOf(".png") <= 0 &&
+        url.indexOf(".bmp") <= 0 &&
+        url.indexOf(".css") <= 0 &&
+        url.indexOf(".xml") <= 0 &&
+        url.indexOf(".swf") <= 0 &&
+        url.indexOf(".xls") <= 0 &&
+        url.indexOf(".rar") <= 0 &&
+        url.indexOf(".zip") <= 0 &&
+        url.indexOf(".gif") <= 0 &&
+        url.indexOf(".woff") <= 0 &&
+        url.indexOf(".ttf") <= 0 &&
+        url.indexOf(".eot") <= 0 &&
+        url.indexOf(".otf") <= 0 &&
+        url.indexOf(".svg") <= 0 &&
+        url.indexOf(".json") <= 0
+    })
 
     val pv = lines.map(x => (x.getString("host"), 1)).reduceByKey(_+_)
     //构成 (host_ip, 1)的形式

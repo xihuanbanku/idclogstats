@@ -1,5 +1,6 @@
 package com.isinonet.ismartnet.video
 
+import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.{Date, Properties}
 
@@ -7,7 +8,6 @@ import com.isinonet.ismartnet.beans._
 import com.isinonet.ismartnet.constant.Constants
 import com.isinonet.ismartnet.mapper._
 import com.isinonet.ismartnet.utils.{JDBCHelper, PropUtils}
-import org.apache.spark.SparkContext
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 
@@ -37,6 +37,7 @@ object VideoLogStats {
          """.stripMargin)
     }
     val sparkSession = SparkSession.builder().appName("VideoLogStats")
+//        .master("local[*]")
       .config("spark.sql.shuffle.partitions", "10").getOrCreate()
     sparkSession.sparkContext.setLogLevel("WARN")
 
@@ -49,7 +50,7 @@ object VideoLogStats {
     val aids = Array(9,10,13,14,16,32,5,6,1012)
     val cacheToday = sparkSession.read.json(hdfsPath+date+"*")
         .filter(x => {
-          x.getString(0)!= null && aids.contains(x.getString(0).toInt)
+          x.getString(0)!= null && aids.contains(x.getString(0).toInt) && (x.getAs[Long]("sip") == 3232235938l|| x.getAs[Long]("sip") == 3232235938l)
         }).cache
 
     val props: Properties = PropUtils.loadProps("jdbc.properties")
@@ -62,7 +63,6 @@ object VideoLogStats {
     val joinedDataframe = dataset.join(broadcast_ua.value, $"ua" === $"ua_type", "left")
 
     //入库
-//    dataset.foreachPartition(data2Postgres(_, "tb_video_daily_uatype", "ua_type, ua_count", date))
 
     joinedDataframe.rdd.mapPartitionsWithIndex((index, it) => {
       val session = JDBCHelper.getSession
@@ -95,8 +95,8 @@ object VideoLogStats {
       if(list.size >0) {
         mapper.insertBatch(list)
         session.commit
-        list.clear()
         println(s"[${new Date}][UA]${list.size}")
+        list.clear()
       } else {
         println(s"[${new Date}][UA]no data...")
       }
@@ -104,8 +104,8 @@ object VideoLogStats {
       if(listStaticUAtype.size >0) {
         mapperStaticUAtype.insertBatch(listStaticUAtype)
         session.commit
-        listStaticUAtype.clear()
         println(s"[${new Date}][UA_type]${listStaticUAtype.size}")
+        listStaticUAtype.clear()
       } else {
         println(s"[${new Date}][UA_type]no data...")
       }
@@ -118,7 +118,7 @@ object VideoLogStats {
         val list = x._2.sortWith(_ > _)
         var d = 0l
         for(i <- 0 until list.size-1) {
-          val temp = list(i + 1) - list(i)
+          val temp = list(i) - list(i + 1)
           if(temp < 600)
             d += temp
         }
@@ -130,8 +130,7 @@ object VideoLogStats {
           case duration_min if(duration_min > 60) => 4
           case _ => 5
         })
-    }).groupBy("_2").count()
-//      .foreachPartition(data2Postgres(_, "tb_video_daily_duration", "duration_type, duration_count", date))
+    }).groupBy("_2").agg(count($"_1"))
       .foreachPartition((it) => {
       val session = JDBCHelper.getSession
       val mapper = session.getMapper(classOf[VideoDailyDurationMapper])
@@ -152,8 +151,8 @@ object VideoLogStats {
       if(list.size >0) {
         mapper.insertBatch(list)
         session.commit
-        list.clear()
         println(s"[${new Date}][Duration]${list.size}")
+        list.clear()
       } else {
         println(s"[${new Date}][Duration]no data...")
       }
@@ -161,9 +160,10 @@ object VideoLogStats {
 
 //仅为测试用
     val tmpdateDelete = date.substring(0, 10)
-    //3. 视频类型分布
+    val hour = date.substring(11, 13)
+//    //3. 视频类型分布
     //读取上报的url1
-    val tb_data2 = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_iprobe_data2", Array[String]("create_time > '"+tmpdateDelete+" 00:00:00'", "create_time <= '"+tmpdateDelete+" 23:59:59'", "rflag in(1, 3)"), props).select("url1")
+    val tb_data2 = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_iprobe_data2", Array[String]("create_time > '"+tmpdateDelete+" "+ hour +":00:00'", "create_time <= '"+tmpdateDelete+" "+ hour +":59:59'", "rflag in(1, 3)"), props).select("url1")
     //读取豆瓣中的url1
     val tb_media_meta_url_map = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_media_meta_url_map", props).select("url", "media_uid").cache()
     //读取豆瓣中的视频类型
@@ -193,8 +193,8 @@ object VideoLogStats {
       if(list.size >0) {
         mapper.insertBatch(list)
         session.commit
-        list.clear()
         println(s"[${new Date}][Vtype]${list.size}")
+        list.clear()
       } else {
         println(s"[${new Date}][Vtype]no data...")
       }
@@ -204,15 +204,14 @@ object VideoLogStats {
     //读取当天  18-22点上报的sip, url1
 
     val sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-    val s_date = sdf.parse(tmpdateDelete+" 18:00:00").getTime
-    val e_date = sdf.parse(tmpdateDelete+" 22:00:00").getTime
-
+    val s_date = sdf.parse(tmpdateDelete+" "+ hour +":00:00").getTime/1000
+    val e_date = sdf.parse(tmpdateDelete+" "+ hour +":59:00").getTime/1000
     val tb_data2_18_22 = cacheToday.select("sip", "aid", "url", "cid")
       .where("atm >= "+s_date+" and atm < "+e_date)
       .map(row => {
-        val url = row.getString(2)
-        val aid = row.getLong(1)
-        (row.getLong(0), aid match {
+        val url = row.getAs[String]("url")
+        val aid = row.getAs[String]("aid").toLong
+        (row.getAs[Long]("sip"), aid match {
           //iqiyi
           case 1012  => {
             val str = getUrlParam(url, "lc")
@@ -265,10 +264,9 @@ object VideoLogStats {
     val cacheSip = tb_data2_18_22.join(tb_media_meta_url_map, $"url1" === $"url")
       .join(tb_media_meta_data2, $"media_uid" === $"media_uid1")
       .select($"sip", $"media_type2").map(r => {
-      val i = if(r.getString(1).contains("爱情")) 1 else 0
-      (r.getString(0), i)
-      })(Encoders.tuple(Encoders.STRING, Encoders.scalaInt)).toDF("_1", "_2").groupBy($"_1").agg(count($"_1").as("c_sip"), sum($"_2").as("s_love")).cache()
-
+      val i = if(r.getAs[String](1).contains("爱情")) 1 else 0
+      (r.getAs[Long](0), i)
+      })(Encoders.tuple(Encoders.scalaLong, Encoders.scalaInt)).toDF("_1", "_2").groupBy($"_1").agg(count($"_1").as("c_sip"), sum($"_2").as("s_love")).cache()
 
     val total = cacheSip.count()
     val female = cacheSip.where("s_love/c_sip > 0.5").count()
@@ -281,15 +279,15 @@ object VideoLogStats {
         val sdf = new SimpleDateFormat("yyyy-MM-dd")
 
           val unit = new VideoDailyGender
-          unit.setGender(row.getString(0))
-          unit.setGenderCount(row.getLong(1).toInt)
+          unit.setGender(row.getAs[String](0))
+          unit.setGenderCount(row.getAs[Long](1).toInt)
           unit.setAtime(sdf.parse(date))
 
           mapper.insert(unit)
           session.commit
           println(s"[${new Date}][Gender]${row}")
       }
-    )//.foreachiterator, "tb_video_daily_gender", "gender, gender_count", date)
+    )
 
     //删除缓存
     cacheSip.unpersist
@@ -307,10 +305,11 @@ object VideoLogStats {
     * @return
     */
   def getUrlParam(url: String, param:String): String = {
-    val strings = url.split(param + "=")
+    val strings = URLDecoder.decode(url, "utf-8").split(param + "=")
     if(strings.length>1) {
-      strings(0).split("&")(0)
+      strings(1).split("&")(0)
+    } else {
+      ""
     }
-    ""
   }
 }

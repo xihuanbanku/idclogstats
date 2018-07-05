@@ -1,18 +1,25 @@
 package com.isinonet.ismartnet.idc
 
+import java.io.FileNotFoundException
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, Properties}
 
-import com.isinonet.ismartnet.beans.IdcDaily
+import com.isinonet.ismartnet.beans.{IdcDaily, IdcDailyExample}
 import com.isinonet.ismartnet.mapper.IdcDailyMapper
 import com.isinonet.ismartnet.utils.{JDBCHelper, PropUtils}
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Encoders, SparkSession}
+import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
   * idc日志分析
+  * 每小时执行一次, 执行前先清空当天的记录
+  * 例如: 20180705 08:10执行时, 清空数据库中statdate=20180705的记录, 读取文件 20180705*, 统计statdate=20180705的记录
+  *      20180706 00:10执行时, 清空数据库中statdate=20180705的记录, 读取文件 20180705*, 统计statdate=20180705的记录
+  *      20180706 01:10执行时, 清空数据库中statdate=20180706的记录, 读取文件 20180706*, 统计statdate=20180706的记录
   * Created by Administrator on 2018-06-06.
   * 2018-06-06
   */
@@ -40,6 +47,10 @@ object LogStats {
       .appName("LogStats")
       .getOrCreate()
 
+    val sparkContext = sparkSession.sparkContext
+    import org.apache.hadoop.fs.FileSystem
+    // pickup config files off classpath// pickup config files off classpath
+
     //导入spark的隐式转换
 //    import sparkSession.implicits._
     import sparkSession.implicits._
@@ -48,17 +59,41 @@ object LogStats {
     import scala.collection.JavaConversions._
     val date = if(args.length > 2) args(2) else args(0)
     val hdfsPath = if(args.length > 2) args(3) else args(1)
+    println(s"${"="*50}start [${date}] hdfs path [$hdfsPath]")
     //准备前7天的ip文件, 为判断新老用户使用
     val format = new SimpleDateFormat("yyyy-MM-dd")
     val calendar = Calendar.getInstance()
     calendar.setTime(format.parse(date))
     val dates = new ArrayBuffer[String]
+    //创建hdfs的fs, 来检测目录是否存在
+    val conf = new Configuration
+    conf.addResource(new Path("core-site.xml"))
+    val fileSystem = FileSystem.get(conf)
+    var _7daysUsers :DataFrame = null
+
     for (elem <- 1 to 7) {
       calendar.add(Calendar.DAY_OF_MONTH, -1)
-      dates += hdfsPath + format.format(calendar.getTime)+"*"
+      //先判断路径是否存在
+      val filePath = hdfsPath + format.format(calendar.getTime) + "*"
+      if(fileSystem.globStatus(new Path(filePath)).length>0) {
+        println(s"${"="*50}reading file path ${filePath}")
+        dates += filePath
+      }
     }
-    val _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5), dates(6))
-      .select($"sip".as("sip_7")).distinct()
+    println(s"${"="*50}hdfs length ${dates.length}")
+    if(dates.length > 0) {
+      dates.length match {
+        case 1 => _7daysUsers = sparkSession.read.json(dates(0)).select($"cook".as("cook_7")).distinct()
+        case 2 => _7daysUsers = sparkSession.read.json(dates(0), dates(1)).select($"cook".as("cook_7")).distinct()
+        case 3 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2)).select($"cook".as("cook_7")).distinct()
+        case 4 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3)).select($"cook".as("cook_7")).distinct()
+        case 5 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4)).select($"cook".as("cook_7")).distinct()
+        case 6 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5)).select($"cook".as("cook_7")).distinct()
+        case 7 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5), dates(6)).select($"cook".as("cook_7")).distinct()
+      }
+    } else {
+      throw new FileNotFoundException("File does not exist")
+    }
     calendar.clear()
     //读取日志文件
     val logToday = sparkSession.read.json(hdfsPath + date + "*")
@@ -69,7 +104,6 @@ object LogStats {
     val tb_static_ip = sparkSession.read.jdbc(props.getProperty("url"),
       "tb_static_ip",
       props).collect()
-    val sparkContext = sparkSession.sparkContext
     //广播
     val broad_tb_static_ip = sparkContext.broadcast(tb_static_ip)
     //读取ua RDD
@@ -99,13 +133,13 @@ object LogStats {
       " and LOCATE(url, '.rar') <=0" +
       " and LOCATE(url, '.zip') <=0" +
       " and LOCATE(url, '.gif') <=0" +
-      " and LOCATE(url, '.woff') <=0" +
       " and LOCATE(url, '.ttf') <=0" +
       " and LOCATE(url, '.eot') <=0" +
       " and LOCATE(url, '.otf') <=0" +
       " and LOCATE(url, '.svg') <=0" +
+      " and LOCATE(url, '.woff') <=0" +
       " and LOCATE(url, '.json') <=0")
-      .select($"host", $"sip", $"ua", $"atm", $"ref")
+      .select($"host", $"sip", $"ua", $"atm", $"ref", $"cook")
 
 //    pv_uv.show(false)
 //    println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
@@ -117,11 +151,11 @@ object LogStats {
     val pv_uv_ua_website = pv_uv.join(tb_static_uatype, $"ua" === $"ua_type", "left")
       .join(tb_idc_website, $"host" === $"domain", "left")
 //    pv_uv_ua_website.show(false)
-//    +------+-----+---+-----+----+----+------+---------+-------+------------+----------+-------+
-//    |host  |sip  |ua |atm  |ref |id  |ua_type|is_mobile|os_type|browser_type|website_id|domain |
-//    +------+-----+---+-----+----+----+------+---------+-------+------------+----------+-------+
+//    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
+//    |host  |sip  |ua |atm  |ref |id  |cook   |ua_type|is_mobile|os_type|browser_type|website_id|domain |
+//    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
     //与7天前的用户关联判断是否是新用户
-    val pv_uv_ua_website_7user = pv_uv_ua_website.join(_7daysUsers, $"sip" === $"sip_7", "left")
+    val pv_uv_ua_website_7user = pv_uv_ua_website.join(_7daysUsers, $"cook" === $"cook_7", "left")
     //确定ip归属地
     val finalResult = pv_uv_ua_website_7user.mapPartitions(it => {
       val ipDB = broad_tb_static_ip.value
@@ -150,7 +184,7 @@ object LogStats {
         } else {
           e.setComeFrom(3.toShort)
         }
-        if(row.getAs[Int]("sip_7") != null) {
+        if(row.getAs[String]("cook_7") != null) {
           e.setIsNewComer(0.toShort)
         } else {
           e.setIsNewComer(1.toShort)
@@ -169,6 +203,15 @@ object LogStats {
         , concat_ws(",", collect_set($"atm")).as("atm_string"))
 //      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv", $"atm_string")
 
+
+    //先清空表
+    println(s"${"="*50}delete pg data ${date}")
+    val session = JDBCHelper.getSession
+    val mapper = session.getMapper(classOf[IdcDailyMapper])
+    val idcDaily = new IdcDailyExample
+    idcDaily.createCriteria().andStatDateEqualTo(format.parse(date))
+    mapper.deleteByExample(idcDaily)
+    session.commit
     //保存到pg数据库
     finalResult.foreachPartition(it => {
 
