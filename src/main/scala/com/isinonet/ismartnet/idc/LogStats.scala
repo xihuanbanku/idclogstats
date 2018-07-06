@@ -4,8 +4,8 @@ import java.io.FileNotFoundException
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, Properties}
 
-import com.isinonet.ismartnet.beans.{IdcDaily, IdcDailyExample}
-import com.isinonet.ismartnet.mapper.IdcDailyMapper
+import com.isinonet.ismartnet.beans.{IdcDaily, IdcDailyExample, StaticUAtype}
+import com.isinonet.ismartnet.mapper.{IdcDailyMapper, StaticUAtypeMapper}
 import com.isinonet.ismartnet.utils.{JDBCHelper, PropUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -263,12 +263,46 @@ object LogStats {
         list+=(unit)
       })
       if(list.size >0) {
-        println(s"[${new Date}][size]${mapper.insertBatch(list)}")
+        println(s"[${new Date}][IdcDaily]${mapper.insertBatch(list)}")
         list.clear()
         session.commit
+      } else {
+        println(s"[${new Date}][IdcDaily]no data...")
       }
-
     })
+
+    //统计新UA 入库
+//    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
+//    |host  |sip  |ua |atm  |ref |id  |cook   |ua_type|is_mobile|os_type|browser_type|website_id|domain |
+//    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
+    pv_uv_ua_website
+      .select($"ua")
+      .where("ua_type == null").rdd.mapPartitionsWithIndex((index, it) => {
+
+      val session = JDBCHelper.getSession
+      val mapperStaticUAtype = session.getMapper(classOf[StaticUAtypeMapper])
+      val listStaticUAtype = ListBuffer[StaticUAtype]()
+      val sdf = new SimpleDateFormat("yyyy-MM-dd")
+      val sdf2 = new SimpleDateFormat("MMdd")
+      var uaID = (sdf2.format(sdf.parse(date)) + index + "000").toInt
+
+      it.foreach(row => {
+          uaID += 1
+          val staticUAtype = new StaticUAtype
+          staticUAtype.setId(uaID)
+          staticUAtype.setUaType(row.getAs[String]("ua"))
+          listStaticUAtype +=(staticUAtype)
+      })
+      //新UA type 入库
+      if(listStaticUAtype.size >0) {
+        println(s"[${new Date}][UA_type]${mapperStaticUAtype.insertBatch(listStaticUAtype)}")
+        session.commit
+        listStaticUAtype.clear()
+      } else {
+        println(s"[${new Date}][UA_type]no data...")
+      }
+      it
+    }).collect
     sparkSession.stop()
   }
 }

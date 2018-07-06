@@ -50,7 +50,7 @@ object VideoLogStats {
     val aids = Array(9,10,13,14,16,32,5,6,1012)
     val cacheToday = sparkSession.read.json(hdfsPath+date+"*")
         .filter(x => {
-          x.getString(0)!= null && aids.contains(x.getString(0).toInt) && (x.getAs[Long]("sip") == 3232235938l|| x.getAs[Long]("sip") == 3232235938l)
+          x.getString(0)!= null && aids.contains(x.getString(0).toInt) && (x.getAs[Long]("sip") == 2886755466l|| x.getAs[Long]("sip") == 3232235938l)
         }).cache
 
     val props: Properties = PropUtils.loadProps("jdbc.properties")
@@ -93,18 +93,16 @@ object VideoLogStats {
       })
       //UA统计入库
       if(list.size >0) {
-        mapper.insertBatch(list)
+        println(s"[${new Date}][UA]${mapper.insertBatch(list)}")
         session.commit
-        println(s"[${new Date}][UA]${list.size}")
         list.clear()
       } else {
         println(s"[${new Date}][UA]no data...")
       }
       //新UA type 入库
       if(listStaticUAtype.size >0) {
-        mapperStaticUAtype.insertBatch(listStaticUAtype)
+        println(s"[${new Date}][UA_type]${mapperStaticUAtype.insertBatch(listStaticUAtype)}")
         session.commit
-        println(s"[${new Date}][UA_type]${listStaticUAtype.size}")
         listStaticUAtype.clear()
       } else {
         println(s"[${new Date}][UA_type]no data...")
@@ -149,9 +147,8 @@ object VideoLogStats {
 
       }
       if(list.size >0) {
-        mapper.insertBatch(list)
+        println(s"[${new Date}][Duration]${mapper.insertBatch(list)}")
         session.commit
-        println(s"[${new Date}][Duration]${list.size}")
         list.clear()
       } else {
         println(s"[${new Date}][Duration]no data...")
@@ -194,9 +191,8 @@ object VideoLogStats {
 
       }
       if(list.size >0) {
-        mapper.insertBatch(list)
+        println(s"[${new Date}][Vtype]${mapper.insertBatch(list)}")
         session.commit
-        println(s"[${new Date}][Vtype]${list.size}")
         list.clear()
       } else {
         println(s"[${new Date}][Vtype]no data...")

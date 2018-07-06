@@ -72,13 +72,16 @@ object IdcLogStreaming {
     val host_pv_uv_joined = host_pv_uv.transform(rdd => {
       val session = JDBCHelper.getSession
       val mapper = session.getMapper(classOf[WebsiteMapper])
+      //findAll 结果 (website_id, website_name, domain, user_name, passwd)
       val websites = mapper.findAll()
       val list1 = scala.collection.mutable.ArrayBuffer[Tuple2[String, String]]()
       for(x:Website <- websites) {
         list1 += ((x.getDomain(), x.getWebsiteID().toString))
       }
+      //只留下 (domain, website_id)
       val websiteRdd = ssc.sparkContext.parallelize(list1)
 
+      //join后的形式 (host_ip, ((pv, uv),  website_id))
       rdd.leftOuterJoin(websiteRdd)
     })
 
@@ -86,27 +89,27 @@ object IdcLogStreaming {
       val list = ListBuffer[Rtpvuv]()
       val listWebsite = ListBuffer[Website]()
       val now = new Date()
-
-      it.foreach(row => {
+      it.foreach { case (domain, joined) => {
         val unit = new Rtpvuv
-        if(row._2._2.isEmpty) {
+        if (joined._2.isEmpty) {
           val website = new Website
-          website.setWebsiteName(row._1)
-          website.setDomain(row._1)
-          unit.setDomain(row._1)
+          website.setWebsiteName(domain)
+          website.setDomain(domain)
+          unit.setDomain(domain)
           listWebsite += website
         } else {
-          unit.setWebsiteId(row._2._2.get.toInt)
+          unit.setWebsiteId(joined._2.get.toInt)
         }
-        val pv_uv = row._2._1
+        val pv_uv = joined._1
 
         unit.setPv(pv_uv._1)
         unit.setUv(pv_uv._2)
         unit.setStatDate(now)
 
-        list+=unit
+        list += unit
 
-      })
+        }
+      }
       val session = JDBCHelper.getSession
       if(listWebsite.size > 0) {
         val mapperWebsite = session.getMapper(classOf[WebsiteMapper])
