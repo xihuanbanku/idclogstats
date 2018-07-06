@@ -47,19 +47,85 @@ object VideoLogStats {
     val date = if(args.length > 2) args(2) else args(0)
     val hdfsPath = if(args.length > 2) args(3) else args(1)
 
-    val aids = Array(9,10,13,14,16,32,5,6,1012)
     val cacheToday = sparkSession.read.json(hdfsPath+date+"*")
-        .filter(x => {
-          x.getString(0)!= null && aids.contains(x.getString(0).toInt) && (x.getAs[Long]("sip") == 2886755466l|| x.getAs[Long]("sip") == 3232235938l)
-        }).cache
+      .where("cid != '' and sip is not null and sip in (2886755466, 3232235938) and aid in (9,10,13,14,16,32,5,6,1012)")
+      .select("sip", "atm", "ua", "aid", "url", "cid")
+      .map(row => {
+        val url = row.getAs[String]("url")
+        val aid = row.getAs[String]("aid").toInt
 
+        (row.getAs[Long]("sip"),
+          row.getAs[Long]("atm"),
+          row.getAs[String]("ua"),
+          aid,
+          url,
+          row.getAs[String]("cid"),
+          aid match {
+          //iqiyi
+          case 1012  => {
+            val str = getUrlParam(url, "lc")
+            if(str.length>0) {
+              str.split("?")(0)
+            }
+            "1012"
+          }
+          //youku
+          case 14 => {
+            val vid = getUrlParam(url, "vid")
+            "http://v.youku.com/v_show/id_" + vid + ".html"
+          }
+          //QQ
+          case 13 => {
+            val cid = "_"+row.get(3).toString+"."
+            val vid = cid.substring(cid.indexOf("_") + 1, cid.indexOf("."))
+            "https://v.qq.com/x/page/" + vid+".html"
+          }
+          //中国网络电视台
+          case 10 => {
+            val cid = "_"+row.get(3)
+            // cid 非空时 decode cid, cid 形式cntv_xxxxxx_xxx.ts, 按照"_"分割, 取第2个结果
+            "http://tv.cntv.cn/video/default/" + cid.split("_")(1)
+          }
+          //letv
+          case 9 => {
+            val vid = getUrlParam(url, "vid")
+            "http://www.le.com/ptv/vplay/" + vid + ".html"
+          }
+          //sohu
+          case 16 => {
+            val vid = getUrlParam(url, "vid")
+            "http://m.tv.sohu.com/v" + vid +".shtml"
+
+          }
+          //huashu
+          case 32 => {
+            val vid = getUrlParam(url, "vid")
+            "https://www.wasu.cn/Play/show/id/" + vid
+
+          }
+          case aid if(aid==5 || aid==6) => {
+            "56"
+          }
+          case _ => "error"
+        })
+      })
+      .toDF("sip", "atm", "ua", "aid", "url", "cid", "url1")
+        .where("url1 not like '%error%'")
+      .cache
+//    +-----+---+---+-----+----+-------+
+//    |sip  |ua |aid|url  |cid |url1   |
+//    +-----+---+---+-----+----+-------+
+//    cacheToday.show(false)
     val props: Properties = PropUtils.loadProps("jdbc.properties")
     //1. 统计UA, 需要按照 ip排重
     //读取现有的UA类型
     val tb_static_uatype = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_static_uatype", props).select("id", "ua_type").cache()
     val broadcast_ua = sparkSession.sparkContext.broadcast(tb_static_uatype)
     //日志先group by 然后与ua表 left join
-    val dataset: Dataset[Row] = cacheToday.where("ua is not null").select($"sip",$"ua").distinct().groupBy($"ua").agg(count($"ua").as("c_ua"))
+    val dataset: Dataset[Row] = cacheToday.where("ua is not null")
+      .select($"sip",$"ua").distinct()
+      .groupBy($"ua")
+      .agg(count($"ua").as("c_ua"))
     val joinedDataframe = dataset.join(broadcast_ua.value, $"ua" === $"ua_type", "left")
 
     //入库
@@ -160,9 +226,9 @@ object VideoLogStats {
     val hour = date.substring(11, 13)
 //    //3. 视频类型分布
     //读取上报的url1
-    val tb_data2 = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_iprobe_data2", props)
-      .where("create_time > '"+tmpdateDelete+" "+ hour +":00:00' and create_time <= '"+tmpdateDelete+" "+ hour +":59:59'")
-      .select($"url1")
+
+    val tb_data2 = cacheToday
+      .select($"url1").distinct()
 //    tb_data2.show(false)
     //读取豆瓣中的url1
     val tb_media_meta_url_map = sparkSession.read.jdbc(props.getProperty(Constants.URL), "tb_media_meta_url_map", props).select("url", "media_uid").cache()
@@ -205,60 +271,9 @@ object VideoLogStats {
     val sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     val s_date = sdf.parse(tmpdateDelete+" "+ hour +":00:00").getTime/1000
     val e_date = sdf.parse(tmpdateDelete+" "+ hour +":59:00").getTime/1000
-    val tb_data2_18_22 = cacheToday.select("sip", "aid", "url", "cid")
+    val tb_data2_18_22 = cacheToday.select("sip", "url1")
       .where("atm >= "+s_date+" and atm < "+e_date)
-      .map(row => {
-        val url = row.getAs[String]("url")
-        val aid = row.getAs[String]("aid").toLong
-        (row.getAs[Long]("sip"), aid match {
-          //iqiyi
-          case 1012  => {
-            val str = getUrlParam(url, "lc")
-            if(str.length>0) {
-              str.split("?")(0)
-            }
-            "1012"
-          }
-            //youku
-          case 14 => {
-            val vid = getUrlParam(url, "vid")
-            "http://v.youku.com/v_show/id_" + vid + ".html"
-          }
-            //QQ
-          case 13 => {
-            val cid = "_"+row.get(3).toString+"."
-            val vid = cid.substring(cid.indexOf("_") + 1, cid.indexOf("."))
-            "https://v.qq.com/x/page/" + vid+".html"
-          }
-            //中国网络电视台
-          case 10 => {
-            val cid = "_"+row.get(3)
-              // cid 非空时 decode cid, cid 形式cntv_xxxxxx_xxx.ts, 按照"_"分割, 取第2个结果
-              "http://tv.cntv.cn/video/default/" + cid.split("_")(1)
-          }
-            //letv
-          case 9 => {
-            val vid = getUrlParam(url, "vid")
-            "http://www.le.com/ptv/vplay/" + vid + ".html"
-          }
-            //sohu
-          case 16 => {
-            val vid = getUrlParam(url, "vid")
-            "http://m.tv.sohu.com/v" + vid +".shtml"
-
-          }
-            //huashu
-          case 32 => {
-            val vid = getUrlParam(url, "vid")
-            "https://www.wasu.cn/Play/show/id/" + vid
-
-          }
-          case aid if(aid==5 || aid==6) => {
-            "56"
-          }
-          case _ => "error"
-        })
-      })(Encoders.tuple(Encoders.scalaLong, Encoders.STRING)).toDF("sip", "url1").distinct()
+      .distinct()
     //连接 取类型, 包含 "爱情" 的标记为1,  返回结果 (ip, 1) (ip, 0)
     val cacheSip = tb_data2_18_22.join(tb_media_meta_url_map, $"url1" === $"url")
       .join(tb_media_meta_data2, $"media_uid" === $"media_uid1")
@@ -288,6 +303,38 @@ object VideoLogStats {
       }
     )
 
+    //5. 统计当天的热点视频
+
+    val tb_data2_hot_url = cacheToday.select("sip", "url1")
+      .distinct()
+      .groupBy("url1")
+      .agg(count($"sip").as("c_count"))
+
+    tb_data2_hot_url.foreachPartition( it => {
+
+      val session = JDBCHelper.getSession
+      val mapper = session.getMapper(classOf[VideoDailyHotClickMapper])
+      val sdf = new SimpleDateFormat("yyyy-MM-dd")
+      val list = ListBuffer[VideoDailyHotClick]()
+
+      it.foreach(row => {
+
+        val unit = new VideoDailyHotClick
+        unit.setUrl1(row.getAs[String]("url1"))
+        unit.setcCount(row.getAs[Long]("c_count"))
+        unit.setAtime(sdf.parse(date))
+        list += unit
+      })
+
+      if(list.size >0) {
+        println(s"[${new Date}][Hot click]${mapper.insertBatch(list)}")
+        session.commit
+        list.clear()
+      } else {
+        println(s"[${new Date}][Hot click]no data...")
+      }
+    })
+
     //删除缓存
     cacheSip.unpersist
     cacheToday.unpersist
@@ -308,7 +355,7 @@ object VideoLogStats {
     if(strings.length>1) {
       strings(1).split("&")(0)
     } else {
-      ""
+      "error"
     }
   }
 }

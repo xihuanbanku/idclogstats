@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.isinonet.ismartnet.mapper.VideoDailyHotClickMapper" >
+  <resultMap id="BaseResultMap" type="com.isinonet.ismartnet.beans.VideoDailyHotClick" >
+    <id column="id" property="id" jdbcType="SMALLINT" />
+    <result column="url1" property="url1" jdbcType="VARCHAR" />
+    <result column="c_count" property="cCount" jdbcType="SMALLINT" />
+    <result column="mod_date" property="modDate" jdbcType="TIMESTAMP" />
+    <result column="atime" property="atime" jdbcType="DATE" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, url1, c_count, mod_date, atime
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Short" >
+    select 
+    <include refid="Base_Column_List" />
+    from tb_video_daily_hot_click
+    where id = #{id,jdbcType=SMALLINT}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Short" >
+    delete from tb_video_daily_hot_click
+    where id = #{id,jdbcType=SMALLINT}
+  </delete>
+  <insert id="insert" parameterType="com.isinonet.ismartnet.beans.VideoDailyHotClick" >
+    insert into tb_video_daily_hot_click (id, url1, c_count, 
+      mod_date, atime)
+    values (#{id,jdbcType=SMALLINT}, #{url1,jdbcType=VARCHAR}, #{cCount,jdbcType=SMALLINT}, 
+      #{modDate,jdbcType=TIMESTAMP}, #{atime,jdbcType=DATE})
+  </insert>
+  <insert id="insertBatch" parameterType="com.isinonet.ismartnet.beans.VideoDailyHotClick" >
+    insert into tb_video_daily_hot_click (url1, c_count, atime)
+    values
+    <foreach collection="list" item="item" index="index" separator=",">
+      (#{item.url1,jdbcType=VARCHAR}, #{item.cCount,jdbcType=SMALLINT}, #{item.atime,jdbcType=DATE})
+    </foreach>
+  </insert>
+  <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyHotClick" >
+    insert into tb_video_daily_hot_click
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="url1 != null" >
+        url1,
+      </if>
+      <if test="cCount != null" >
+        c_count,
+      </if>
+      <if test="modDate != null" >
+        mod_date,
+      </if>
+      <if test="atime != null" >
+        atime,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=SMALLINT},
+      </if>
+      <if test="url1 != null" >
+        #{url1,jdbcType=VARCHAR},
+      </if>
+      <if test="cCount != null" >
+        #{cCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        #{atime,jdbcType=DATE},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.isinonet.ismartnet.beans.VideoDailyHotClick" >
+    update tb_video_daily_hot_click
+    <set >
+      <if test="url1 != null" >
+        url1 = #{url1,jdbcType=VARCHAR},
+      </if>
+      <if test="cCount != null" >
+        c_count = #{cCount,jdbcType=SMALLINT},
+      </if>
+      <if test="modDate != null" >
+        mod_date = #{modDate,jdbcType=TIMESTAMP},
+      </if>
+      <if test="atime != null" >
+        atime = #{atime,jdbcType=DATE},
+      </if>
+    </set>
+    where id = #{id,jdbcType=SMALLINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.isinonet.ismartnet.beans.VideoDailyHotClick" >
+    update tb_video_daily_hot_click
+    set url1 = #{url1,jdbcType=VARCHAR},
+      c_count = #{cCount,jdbcType=SMALLINT},
+      mod_date = #{modDate,jdbcType=TIMESTAMP},
+      atime = #{atime,jdbcType=DATE}
+    where id = #{id,jdbcType=SMALLINT}
+  </update>
+</mapper>
