@@ -4,8 +4,8 @@ import java.io.FileNotFoundException
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, Properties}
 
-import com.isinonet.ismartnet.beans.{IdcDaily, IdcDailyExample, StaticUAtype}
-import com.isinonet.ismartnet.mapper.{IdcDailyMapper, StaticUAtypeMapper}
+import com.isinonet.ismartnet.beans.{IdcDaily, IdcDailyExample, StaticUAtype, Website}
+import com.isinonet.ismartnet.mapper.{IdcDailyMapper, StaticUAtypeMapper, WebsiteMapper}
 import com.isinonet.ismartnet.utils.{JDBCHelper, PropUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -98,7 +98,7 @@ object LogStats {
     //读取日志文件
     val logToday = sparkSession.read.json(hdfsPath + date + "*")
 //    val logToday = sparkSession.read.json("d:/sdc.gz")
-
+println(s"line===============logToday===line${logToday.count()}")
     val props: Properties = PropUtils.loadProps("jdbc.properties")
     //读取ip RDD
     val tb_static_ip = sparkSession.read.jdbc(props.getProperty("url"),
@@ -122,7 +122,9 @@ object LogStats {
 //    val broad_tb_idc_website = sparkContext.broadcast(tb_idc_website)
 
     //统计pv, uv, 过滤掉 jpg, png, bmp, js, css, xml, swf, xls, rar, zip, gif, woff, ttf, eot, otf, svg, json
-    val pv_uv = logToday.filter("host != '' and LOCATE(url, '.js') <=0 " +
+    val pv_uv = logToday.filter($"host" =!= ""
+                                && !($"url" rlike "\.[js]")
+                                && !($"url" contains ""))    "host != '' and LOCATE(url, '.js') <=0 " +
       " and LOCATE(url, '.jpg') <=0" +
       " and LOCATE(url, '.png') <=0" +
       " and LOCATE(url, '.bmp') <=0" +
@@ -139,9 +141,10 @@ object LogStats {
       " and LOCATE(url, '.svg') <=0" +
       " and LOCATE(url, '.woff') <=0" +
       " and LOCATE(url, '.json') <=0")
-      .select($"host", $"sip", $"ua", $"atm", $"ref", $"cook")
+      .select($"url", $"host", $"sip", $"ua", $"atm", $"ref", $"cook")
 
-//    pv_uv.show(false)
+    println(s"line===============pv_uv===line${pv_uv.count()}")
+    pv_uv.show(false)
 //    println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
 //    println(s"-------==${broad_tb_static_uatype.value}")
 //    println(s"===broad_tb_idc_website======$broad_tb_idc_website")
@@ -150,7 +153,8 @@ object LogStats {
     //网站详情关联
     val pv_uv_ua_website = pv_uv.join(tb_static_uatype, $"ua" === $"ua_type", "left")
       .join(tb_idc_website, $"host" === $"domain", "left")
-//    pv_uv_ua_website.show(false)
+//      .where("website_id is null")
+    pv_uv_ua_website.show()
 //    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
 //    |host  |sip  |ua |atm  |ref |id  |cook   |ua_type|is_mobile|os_type|browser_type|website_id|domain |
 //    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
@@ -192,18 +196,19 @@ object LogStats {
         e.setWebsiteId(row.getAs[Int]("website_id"))
         e.setIsMobile(row.getAs[Short]("is_mobile"))
         e.setSip(sip)
+        e.setHost(row.getAs[String]("host"))
         e.setAtm(row.getAs[Long]("atm").toString)
         list.+=(e)
 
       })
       list.toIterator
     })(Encoders.bean(classOf[IdcDaily])).toDF()
-      .groupBy($"isMobile", $"isp", $"provinceId", $"websiteId", $"comeFrom", $"isNewComer")
+      .groupBy($"isMobile", $"isp", $"provinceId", $"host", $"websiteId", $"comeFrom", $"isNewComer")
       .agg(countDistinct($"sip").as("uv"), count($"sip").as("pv")
         , concat_ws(",", collect_set($"atm")).as("atm_string"))
 //      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv", $"atm_string")
 
-
+    finalResult.show()
     //先清空表
     println(s"${"="*50}delete pg data ${date}")
     val session = JDBCHelper.getSession
@@ -213,12 +218,18 @@ object LogStats {
     mapper.deleteByExample(idcDaily)
     session.commit
     //保存到pg数据库
-    finalResult.foreachPartition(it => {
+    finalResult.rdd.mapPartitionsWithIndex((index, it) => {
 
       val session = JDBCHelper.getSession
       val mapper = session.getMapper(classOf[IdcDailyMapper])
       val list = ListBuffer[IdcDaily]()
       val sdf = new SimpleDateFormat("yyyy-MM-dd")
+
+
+      val mapperWebsite = session.getMapper(classOf[WebsiteMapper])
+      val listWebsite = ListBuffer[Website]()
+      val sdf2 = new SimpleDateFormat("MMddHH")
+      var websiteID = (sdf2.format(new Date) + index + "000").toInt
 
       //循环partition中的所有记录
       it.filter(_.getAs[String]("atm_string") != "").foreach(row => {
@@ -251,7 +262,18 @@ object LogStats {
         unit.setIsMobile(row.getAs[Short]("isMobile"))
         unit.setIsp(row.getAs[String]("isp"))
         unit.setProvinceId(row.getAs[Short]("provinceId"))
-        unit.setWebsiteId(row.getAs[Int]("websiteId"))
+        if(row.getAs[Int]("websiteId") == 0 || row.getAs[Int]("websiteId") == null) {
+          websiteID += 1
+          val website = new Website
+          website.setWebsiteID(websiteID)
+          website.setWebsiteName(row.getAs[String]("host"))
+          website.setDomain(row.getAs[String]("host"))
+          listWebsite+=website
+          unit.setWebsiteId(websiteID)
+
+        } else {
+          unit.setWebsiteId(row.getAs[Int]("websiteId"))
+        }
         unit.setComeFrom(row.getAs[Short]("comeFrom"))
         unit.setIsNewComer(row.getAs[Short]("isNewComer"))
         unit.setUv(row.getAs[Long]("uv"))
@@ -269,7 +291,15 @@ object LogStats {
       } else {
         println(s"[${new Date}][IdcDaily]no data...")
       }
-    })
+      if(listWebsite.size >0) {
+        println(s"[${new Date}][WebSite]${mapperWebsite.insertBatchWithID(listWebsite)}")
+        listWebsite.clear()
+        session.commit
+      } else {
+        println(s"[${new Date}][WebSite]no data...")
+      }
+      it
+    }).collect
 
     //统计新UA 入库
 //    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+

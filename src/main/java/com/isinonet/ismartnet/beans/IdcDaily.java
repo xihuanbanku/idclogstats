@@ -39,6 +39,16 @@ public class IdcDaily implements Serializable{
 
     private String atm;
 
+    private String host;
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
     public String getAtm() {
         return atm;
     }

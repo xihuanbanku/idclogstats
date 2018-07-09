@@ -45,6 +45,15 @@
       #{item.domain,jdbcType=VARCHAR})
     </foreach>
   </insert>
+  <insert id="insertBatchWithID" parameterType="com.isinonet.ismartnet.beans.Website">
+    insert into tb_idc_website (website_id, website_name, domain,
+    user_name)
+    values
+    <foreach collection="list" index="index" item="item" separator=",">
+      ( #{item.websiteID,jdbcType=VARCHAR}, #{item.domain,jdbcType=VARCHAR}, #{item.domain,jdbcType=VARCHAR},
+      #{item.domain,jdbcType=VARCHAR})
+    </foreach>
+  </insert>
   <insert id="insertSelective" parameterType="com.isinonet.ismartnet.beans.Website">
     insert into tb_idc_website
     <trim prefix="(" suffix=")" suffixOverrides=",">

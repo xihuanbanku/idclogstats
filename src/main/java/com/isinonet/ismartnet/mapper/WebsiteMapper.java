@@ -14,6 +14,8 @@ public interface WebsiteMapper {
 
     int insertBatch(List<Website> record);
 
+    int insertBatchWithID(List<Website> record);
+
     int insertSelective(Website record);
 
     Website selectByPrimaryKey(Integer websiteId);
