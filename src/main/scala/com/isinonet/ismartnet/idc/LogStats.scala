@@ -122,25 +122,7 @@ println(s"line===============logToday===line${logToday.count()}")
 //    val broad_tb_idc_website = sparkContext.broadcast(tb_idc_website)
 
     //统计pv, uv, 过滤掉 jpg, png, bmp, js, css, xml, swf, xls, rar, zip, gif, woff, ttf, eot, otf, svg, json
-    val pv_uv = logToday.filter($"host" =!= ""
-                                && !($"url" rlike "\.[js]")
-                                && !($"url" contains ""))    "host != '' and LOCATE(url, '.js') <=0 " +
-      " and LOCATE(url, '.jpg') <=0" +
-      " and LOCATE(url, '.png') <=0" +
-      " and LOCATE(url, '.bmp') <=0" +
-      " and LOCATE(url, '.css') <=0" +
-      " and LOCATE(url, '.xml') <=0" +
-      " and LOCATE(url, '.swf') <=0" +
-      " and LOCATE(url, '.xls') <=0" +
-      " and LOCATE(url, '.rar') <=0" +
-      " and LOCATE(url, '.zip') <=0" +
-      " and LOCATE(url, '.gif') <=0" +
-      " and LOCATE(url, '.ttf') <=0" +
-      " and LOCATE(url, '.eot') <=0" +
-      " and LOCATE(url, '.otf') <=0" +
-      " and LOCATE(url, '.svg') <=0" +
-      " and LOCATE(url, '.woff') <=0" +
-      " and LOCATE(url, '.json') <=0")
+    val pv_uv = logToday.filter(" host!= '' and not url rlike '\\.(js|jpg|png|bmp|css|xml|swf|xls|rar|zip|gif|ttf|eot|otf|svg|woff|json)'")
       .select($"url", $"host", $"sip", $"ua", $"atm", $"ref", $"cook")
 
     println(s"line===============pv_uv===line${pv_uv.count()}")
