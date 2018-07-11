@@ -22,6 +22,10 @@
     delete from tb_idc_rt_stream
     where id = #{id,jdbcType=INTEGER}
   </delete>
+  <delete id="delHistory">
+    delete from tb_idc_rt_stream
+    where stat_date &lt; current_date
+  </delete>
   <insert id="insert" parameterType="com.isinonet.ismartnet.beans.Rtpvuv">
     insert into tb_idc_rt_stream (website_id, stat_date,
       pv, uv, mod_time)

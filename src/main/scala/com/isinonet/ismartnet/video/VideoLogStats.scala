@@ -47,6 +47,8 @@ object VideoLogStats {
     val date = if(args.length > 2) args(2) else args(0)
     val hdfsPath = if(args.length > 2) args(3) else args(1)
 
+    println(s"${"="*50}start [${date}] hdfs path [$hdfsPath]")
+
     val cacheToday = sparkSession.read.json(hdfsPath+date+"*")
       .where("cid != '' and sip is not null and sip in (2886755466, 3232235938) and aid in (9,10,13,14,16,32,5,6,1012)")
       .select("sip", "atm", "ua", "aid", "url", "cid")
@@ -176,26 +178,28 @@ object VideoLogStats {
       it
     }).collect()
     // 2.统计观看视频时长
-    cacheToday.select($"sip", $"atm").where("atm is not null").groupByKey(_.get(0).toString)
+    val frame = cacheToday.select($"sip", $"atm").where("atm is not null").groupByKey(_.get(0).toString)
       .mapGroups((a, b) => (a, b.map[Long](r => r.getAs[Long](1)).toList))
-      .map(x => {
-        val list = x._2.sortWith(_ > _)
+      .map { case (sip, atimes) =>
+        val list = atimes.sortWith(_ > _)
         var d = 0l
-        for(i <- 0 until list.size-1) {
+        for (i <- 0 until list.size - 1) {
           val temp = list(i) - list(i + 1)
-          if(temp < 600)
+          if (temp < 600)
             d += temp
         }
         val duration_min = (d / 60.0).toInt
-        (x._1, duration_min match {
-          case duration_min if(duration_min <= 10) => 1
-          case duration_min if(duration_min > 10 && duration_min <= 30) => 2
-          case duration_min if(duration_min > 30 && duration_min <= 60) => 3
-          case duration_min if(duration_min > 60) => 4
+        (sip, duration_min match {
+          case duration_min if (duration_min <= 10) => 1
+          case duration_min if (duration_min > 10 && duration_min <= 30) => 2
+          case duration_min if (duration_min > 30 && duration_min <= 60) => 3
+          case duration_min if (duration_min > 60) => 4
           case _ => 5
         })
-    }).groupBy("_2").agg(count($"_1"))
-      .foreachPartition((it) => {
+      }.groupBy("_2").agg(count($"_1"))
+    frame.show(false)
+
+    frame.foreachPartition((it) => {
       val session = JDBCHelper.getSession
       val mapper = session.getMapper(classOf[VideoDailyDurationMapper])
 
@@ -274,23 +278,30 @@ object VideoLogStats {
     val tb_data2_18_22 = cacheToday.select("sip", "url1")
       .where("atm >= "+s_date+" and atm < "+e_date)
       .distinct()
+    tb_data2_18_22.show(false)
     //连接 取类型, 包含 "爱情" 的标记为1,  返回结果 (ip, 1) (ip, 0)
-    val cacheSip = tb_data2_18_22.join(tb_media_meta_url_map, $"url1" === $"url")
-      .join(tb_media_meta_data2, $"media_uid" === $"media_uid1")
-      .select($"sip", $"media_type2").map(r => {
-      val i = if(r.getAs[String](1).contains("爱情")) 1 else 0
-      (r.getAs[Long](0), i)
-      })(Encoders.tuple(Encoders.scalaLong, Encoders.scalaInt)).toDF("_1", "_2").groupBy($"_1").agg(count($"_1").as("c_sip"), sum($"_2").as("s_love")).cache()
+    val cacheSip = tb_data2_18_22.join(tb_media_meta_url_map, $"url1" === $"url", "left")
+      .join(tb_media_meta_data2, $"media_uid" === $"media_uid1", "left")
+      .select($"sip", $"media_type2").map(row => {
+      val i = if(row.getAs[String]("media_type2") != null && row.getAs[String]("media_type2").contains("爱情")) 1 else 0
+      (row.getAs[Long]("sip"), i)
+      })(Encoders.tuple(Encoders.scalaLong, Encoders.scalaInt))
+      .toDF("sip", "isLove")
+      .groupBy($"sip")
+      .agg(count($"sip").as("c_sip"), sum($"isLove").as("s_love"))
+      .cache()
 
+    cacheSip.show(false)
     val total = cacheSip.count()
-    val female = cacheSip.where("s_love/c_sip > 0.5").count()
+    if(total > 0) {
+      val female = cacheSip.where("s_love/c_sip > 0.5").count()
 
-    List(Row("male", total-female), Row("female", female)).foreach(
-      row => {
-        val session = JDBCHelper.getSession
-        val mapper = session.getMapper(classOf[VideoDailyGenderMapper])
+      List(Row("male", total - female), Row("female", female)).foreach(
+        row => {
+          val session = JDBCHelper.getSession
+          val mapper = session.getMapper(classOf[VideoDailyGenderMapper])
 
-        val sdf = new SimpleDateFormat("yyyy-MM-dd")
+          val sdf = new SimpleDateFormat("yyyy-MM-dd")
 
           val unit = new VideoDailyGender
           unit.setGender(row.getAs[String](0))
@@ -300,8 +311,11 @@ object VideoLogStats {
           mapper.insert(unit)
           session.commit
           println(s"[${new Date}][Gender]${row}")
-      }
-    )
+        }
+      )
+    } else {
+      println(s"[${new Date}][Gender]no data...")
+    }
 
     //5. 统计当天的热点视频
 

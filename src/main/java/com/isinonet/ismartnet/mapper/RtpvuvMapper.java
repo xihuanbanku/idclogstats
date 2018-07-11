@@ -18,4 +18,6 @@ public interface RtpvuvMapper {
     int updateByPrimaryKeySelective(Rtpvuv record);
 
     int updateByPrimaryKey(Rtpvuv record);
+
+    int delHistory();
 }

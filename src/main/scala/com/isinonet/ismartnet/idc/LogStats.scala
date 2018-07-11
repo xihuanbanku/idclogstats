@@ -8,6 +8,7 @@ import com.isinonet.ismartnet.beans.{IdcDaily, IdcDailyExample, StaticUAtype, We
 import com.isinonet.ismartnet.mapper.{IdcDailyMapper, StaticUAtypeMapper, WebsiteMapper}
 import com.isinonet.ismartnet.utils.{JDBCHelper, PropUtils}
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Encoders, SparkSession}
@@ -24,7 +25,6 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
   * 2018-06-06
   */
 object LogStats {
-
 
   def main(args: Array[String]): Unit = {
     if(args.length % 2 != 0) {
@@ -48,7 +48,6 @@ object LogStats {
       .getOrCreate()
 
     val sparkContext = sparkSession.sparkContext
-    import org.apache.hadoop.fs.FileSystem
     // pickup config files off classpath// pickup config files off classpath
 
     //导入spark的隐式转换
@@ -70,7 +69,16 @@ object LogStats {
     conf.addResource(new Path("core-site.xml"))
     val fileSystem = FileSystem.get(conf)
     var _7daysUsers :DataFrame = null
-
+    //检查今天的日志文件是否已经生成
+    val todayFilePath = hdfsPath + date+"*"
+    val fileStatuses = fileSystem.globStatus(new Path(todayFilePath))
+    if(fileStatuses != null && fileStatuses.length>0) {
+      println(s"${"="*50}reading file path ${todayFilePath}")
+      dates += todayFilePath
+    } else {
+      println(s"${"="*50}log file of ${todayFilePath} does not exist, exiting...")
+      throw new FileNotFoundException("today's log file is not ready")
+    }
     for (elem <- 1 to 7) {
       calendar.add(Calendar.DAY_OF_MONTH, -1)
       //先判断路径是否存在

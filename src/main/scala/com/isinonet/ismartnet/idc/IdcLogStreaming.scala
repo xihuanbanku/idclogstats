@@ -54,14 +54,11 @@ object IdcLogStreaming {
     })
 
     val pv = lines.map(x => (x.getString("host"), 1)).reduceByKey(_+_)
-    //构成 (host_ip, 1)的形式
-    val uv = lines.map(x => (x.getString("host")+"_"+ x.getString("sip"), 1))
-      //构成 (host_ip, sum)的形式
-      .reduceByKey(_+_)
-      //只取出host
-      .map(x => (x._1.split("_")(0), 1))
-      //累加数量
-      .reduceByKey(_+_)
+
+    val uv = lines.map(x => (x.getString("host")+"_"+ x.getString("cook"), 1)) //构成 (host_cook, 1)的形式
+      .reduceByKey(_+_) //构成 (host_cook, sum)的形式
+      .map(x => (x._1.split("_")(0), 1)) //只取出host
+      .reduceByKey(_+_) //累加数量
 
     //scala  转为java 的集合
     //    import scala.collection.JavaConversions._
@@ -81,7 +78,7 @@ object IdcLogStreaming {
       //只留下 (domain, website_id)
       val websiteRdd = ssc.sparkContext.parallelize(list1)
 
-      //join后的形式 (host_ip, ((pv, uv),  website_id))
+      //join后的形式 (host, ((pv, uv),  website_id))
       rdd.leftOuterJoin(websiteRdd)
     })
 
@@ -123,6 +120,7 @@ object IdcLogStreaming {
       if(list.size > 0) {
         val mapper = session.getMapper(classOf[RtpvuvMapper])
         mapper.insertBatch(list)
+        mapper.delHistory()
         session.commit
         list.clear
         println(s"[${new Date}][PV_UV]${list.size}")
