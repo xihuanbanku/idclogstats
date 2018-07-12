@@ -130,7 +130,7 @@ println(s"line===============logToday===line${logToday.count()}")
 //    val broad_tb_idc_website = sparkContext.broadcast(tb_idc_website)
 
     //统计pv, uv, 过滤掉 jpg, png, bmp, js, css, xml, swf, xls, rar, zip, gif, woff, ttf, eot, otf, svg, json
-    val pv_uv = logToday.filter(" host!= '' and not url rlike '\\.(js|jpg|png|bmp|css|xml|swf|xls|rar|zip|gif|ttf|eot|otf|svg|woff|json)'")
+    val pv_uv = logToday.filter(" host!= '' and not url rlike '\\.(ico|js|jpg|png|bmp|css|xml|swf|xls|rar|zip|gif|ttf|eot|otf|svg|woff|json)'")
       .select($"url", $"host", $"sip", $"ua", $"atm", $"ref", $"cook")
 
     println(s"line===============pv_uv===line${pv_uv.count()}")

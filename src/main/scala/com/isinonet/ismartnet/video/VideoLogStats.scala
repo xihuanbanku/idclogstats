@@ -51,7 +51,7 @@ object VideoLogStats {
 
     val cacheToday = sparkSession.read.json(hdfsPath+date+"*")
       .where("cid != '' and sip is not null and sip in (2886755466, 3232235938) and aid in (9,10,13,14,16,32,5,6,1012)")
-      .select("sip", "atm", "ua", "aid", "url", "cid")
+      .select($"sip", $"ct".as("atm"), $"ua", $"aid", $"url", $"cid")
       .map(row => {
         val url = row.getAs[String]("url")
         val aid = row.getAs[String]("aid").toInt
@@ -182,7 +182,7 @@ object VideoLogStats {
       .mapGroups((a, b) => (a, b.map[Long](r => r.getAs[Long](1)).toList))
       .map { case (sip, atimes) =>
         val list = atimes.sortWith(_ > _)
-        var d = 0l
+        var d = 10l
         for (i <- 0 until list.size - 1) {
           val temp = list(i) - list(i + 1)
           if (temp < 600)
@@ -273,8 +273,8 @@ object VideoLogStats {
     //读取当天  18-22点上报的sip, url1
 
     val sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-    val s_date = sdf.parse(tmpdateDelete+" "+ hour +":00:00").getTime/1000
-    val e_date = sdf.parse(tmpdateDelete+" "+ hour +":59:00").getTime/1000
+    val s_date = sdf.parse(tmpdateDelete+" "+ hour +":00:00").getTime
+    val e_date = sdf.parse(tmpdateDelete+" "+ hour +":59:00").getTime
     val tb_data2_18_22 = cacheToday.select("sip", "url1")
       .where("atm >= "+s_date+" and atm < "+e_date)
       .distinct()

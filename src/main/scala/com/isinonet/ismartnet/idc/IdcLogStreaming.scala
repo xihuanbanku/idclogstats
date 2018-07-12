@@ -34,23 +34,24 @@ object IdcLogStreaming {
     val lines = messages.map(_._2).map(JSON.parseObject(_)).filter(json => {
       val url = json.getString("url");
       json.containsKey("host") &&
-        url.indexOf(".js") <= 0 &&
-        url.indexOf(".jpg") <= 0 &&
-        url.indexOf(".png") <= 0 &&
-        url.indexOf(".bmp") <= 0 &&
-        url.indexOf(".css") <= 0 &&
-        url.indexOf(".xml") <= 0 &&
-        url.indexOf(".swf") <= 0 &&
-        url.indexOf(".xls") <= 0 &&
-        url.indexOf(".rar") <= 0 &&
-        url.indexOf(".zip") <= 0 &&
-        url.indexOf(".gif") <= 0 &&
-        url.indexOf(".woff") <= 0 &&
-        url.indexOf(".ttf") <= 0 &&
-        url.indexOf(".eot") <= 0 &&
-        url.indexOf(".otf") <= 0 &&
-        url.indexOf(".svg") <= 0 &&
-        url.indexOf(".json") <= 0
+        !url.contains(".ico") &&
+        !url.contains(".js") &&
+        !url.contains(".jpg") &&
+        !url.contains(".png") &&
+        !url.contains(".bmp") &&
+        !url.contains(".css") &&
+        !url.contains(".xml") &&
+        !url.contains(".swf") &&
+        !url.contains(".xls") &&
+        !url.contains(".rar") &&
+        !url.contains(".zip") &&
+        !url.contains(".gif") &&
+        !url.contains(".woff") &&
+        !url.contains(".ttf")  &&
+        !url.contains(".eot")  &&
+        !url.contains(".otf")  &&
+        !url.contains(".svg")  &&
+        !url.contains(".json")
     })
 
     val pv = lines.map(x => (x.getString("host"), 1)).reduceByKey(_+_)
