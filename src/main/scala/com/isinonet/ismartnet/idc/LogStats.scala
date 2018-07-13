@@ -79,34 +79,45 @@ object LogStats {
       println(s"${"="*50}log file of ${todayFilePath} does not exist, exiting...")
       throw new FileNotFoundException("today's log file is not ready")
     }
-    for (elem <- 1 to 7) {
-      calendar.add(Calendar.DAY_OF_MONTH, -1)
-      //先判断路径是否存在
-      val filePath = hdfsPath + format.format(calendar.getTime) + "*"
-      if(fileSystem.globStatus(new Path(filePath)).length>0) {
-        println(s"${"="*50}reading file path ${filePath}")
-        dates += filePath
-      }
-    }
-    println(s"${"="*50}hdfs length ${dates.length}")
-    if(dates.length > 0) {
-      dates.length match {
-        case 1 => _7daysUsers = sparkSession.read.json(dates(0)).select($"cook".as("cook_7")).distinct()
-        case 2 => _7daysUsers = sparkSession.read.json(dates(0), dates(1)).select($"cook".as("cook_7")).distinct()
-        case 3 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2)).select($"cook".as("cook_7")).distinct()
-        case 4 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3)).select($"cook".as("cook_7")).distinct()
-        case 5 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4)).select($"cook".as("cook_7")).distinct()
-        case 6 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5)).select($"cook".as("cook_7")).distinct()
-        case 7 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5), dates(6)).select($"cook".as("cook_7")).distinct()
-      }
+    //检查前7天的cookie文件是否已经生成, 如果没有, 需要重新生成
+    val cookieFilePath = hdfsPath + date+"_cookie_7_csv"
+    val cookiefileStatuses = fileSystem.globStatus(new Path(cookieFilePath))
+    if(cookiefileStatuses != null && cookiefileStatuses.length>0) {
+      println(s"${"="*50}reading cookieFilePath ${cookieFilePath}")
+      _7daysUsers = sparkSession.read.csv(cookieFilePath).select($"_c0".as("cook_7"))
     } else {
-      throw new FileNotFoundException("File does not exist")
+      println(s"${"="*50}cookieFilePath of ${cookieFilePath} does not exist, genarating...")
+      for (elem <- 1 to 7) {
+        calendar.add(Calendar.DAY_OF_MONTH, -1)
+        //先判断路径是否存在
+        val filePath = hdfsPath + format.format(calendar.getTime) + "*"
+        if(fileSystem.globStatus(new Path(filePath)).length>0) {
+          println(s"${"="*50}reading file path ${filePath}")
+          dates += filePath
+        }
+      }
+      println(s"${"="*50}hdfs length ${dates.length}")
+      if(dates.length > 0) {
+        dates.length match {
+          case 1 => _7daysUsers = sparkSession.read.json(dates(0)).select($"cook".as("cook_7")).distinct()
+          case 2 => _7daysUsers = sparkSession.read.json(dates(0), dates(1)).select($"cook".as("cook_7")).distinct()
+          case 3 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2)).select($"cook".as("cook_7")).distinct()
+          case 4 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3)).select($"cook".as("cook_7")).distinct()
+          case 5 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4)).select($"cook".as("cook_7")).distinct()
+          case 6 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5)).select($"cook".as("cook_7")).distinct()
+          case 7 => _7daysUsers = sparkSession.read.json(dates(0), dates(1), dates(2), dates(3), dates(4), dates(5), dates(6)).select($"cook".as("cook_7")).distinct()
+        }
+        _7daysUsers.write.csv(cookieFilePath)
+        println(s"${"="*50}write file path ${cookieFilePath} success")
+      } else {
+        throw new FileNotFoundException("7 days File does not exist")
+      }
+      calendar.clear()
     }
-    calendar.clear()
     //读取日志文件
     val logToday = sparkSession.read.json(hdfsPath + date + "*")
 //    val logToday = sparkSession.read.json("d:/sdc.gz")
-println(s"line===============logToday===line${logToday.count()}")
+//println(s"line===============logToday===line${logToday.count()}")
     val props: Properties = PropUtils.loadProps("jdbc.properties")
     //读取ip RDD
     val tb_static_ip = sparkSession.read.jdbc(props.getProperty("url"),
@@ -133,8 +144,8 @@ println(s"line===============logToday===line${logToday.count()}")
     val pv_uv = logToday.filter(" host!= '' and not url rlike '\\.(ico|js|jpg|png|bmp|css|xml|swf|xls|rar|zip|gif|ttf|eot|otf|svg|woff|json)'")
       .select($"url", $"host", $"sip", $"ua", $"atm", $"ref", $"cook")
 
-    println(s"line===============pv_uv===line${pv_uv.count()}")
-    pv_uv.show(false)
+//    println(s"line===============pv_uv===line${pv_uv.count()}")
+//    pv_uv.show(false)
 //    println(s"===broad_tb_static_uatype======$broad_tb_static_uatype")
 //    println(s"-------==${broad_tb_static_uatype.value}")
 //    println(s"===broad_tb_idc_website======$broad_tb_idc_website")
@@ -144,7 +155,7 @@ println(s"line===============logToday===line${logToday.count()}")
     val pv_uv_ua_website = pv_uv.join(tb_static_uatype, $"ua" === $"ua_type", "left")
       .join(tb_idc_website, $"host" === $"domain", "left")
 //      .where("website_id is null")
-    pv_uv_ua_website.show()
+//    pv_uv_ua_website.show()
 //    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
 //    |host  |sip  |ua |atm  |ref |id  |cook   |ua_type|is_mobile|os_type|browser_type|website_id|domain |
 //    +------+-----+---+-----+----+----+-------+------+---------+-------+------------+----------+-------+
@@ -198,7 +209,7 @@ println(s"line===============logToday===line${logToday.count()}")
         , concat_ws(",", collect_set($"atm")).as("atm_string"))
 //      .select($"isMobile", $"isp", $"provinceId", $"websiteId", $"uv", $"pv", $"atm_string")
 
-    finalResult.show()
+//    finalResult.show()
     //先清空表
     println(s"${"="*50}delete pg data ${date}")
     val session = JDBCHelper.getSession

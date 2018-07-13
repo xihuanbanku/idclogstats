@@ -197,7 +197,7 @@ object VideoLogStats {
           case _ => 5
         })
       }.groupBy("_2").agg(count($"_1"))
-    frame.show(false)
+//    frame.show(false)
 
     frame.foreachPartition((it) => {
       val session = JDBCHelper.getSession
@@ -278,7 +278,7 @@ object VideoLogStats {
     val tb_data2_18_22 = cacheToday.select("sip", "url1")
       .where("atm >= "+s_date+" and atm < "+e_date)
       .distinct()
-    tb_data2_18_22.show(false)
+//    tb_data2_18_22.show(false)
     //连接 取类型, 包含 "爱情" 的标记为1,  返回结果 (ip, 1) (ip, 0)
     val cacheSip = tb_data2_18_22.join(tb_media_meta_url_map, $"url1" === $"url", "left")
       .join(tb_media_meta_data2, $"media_uid" === $"media_uid1", "left")
@@ -291,7 +291,7 @@ object VideoLogStats {
       .agg(count($"sip").as("c_sip"), sum($"isLove").as("s_love"))
       .cache()
 
-    cacheSip.show(false)
+//    cacheSip.show(false)
     val total = cacheSip.count()
     if(total > 0) {
       val female = cacheSip.where("s_love/c_sip > 0.5").count()
